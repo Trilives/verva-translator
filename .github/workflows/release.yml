@@ -1,0 +1,137 @@
+name: Build and release Windows app
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: Release channel
+        required: true
+        type: choice
+        options: [stable, beta]
+        default: beta
+      version:
+        description: SemVer without v (for example 0.2.0-beta.1)
+        required: true
+        type: string
+      release_notes:
+        description: Optional release notes
+        required: false
+        type: string
+      replace_existing:
+        description: Replace the same tag after a successful build
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    env:
+      VERSION: ${{ inputs.version }}
+      CHANNEL: ${{ inputs.channel }}
+      RELEASE_NOTES: ${{ inputs.release_notes }}
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> src-tauri/target
+
+      - name: Validate version and signing configuration
+        shell: pwsh
+        run: |
+          if ($env:VERSION -notmatch '^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-[0-9A-Za-z.-]+)?$') { throw 'Invalid SemVer.' }
+          if ($env:CHANNEL -eq 'stable' -and $env:VERSION.Contains('-')) { throw 'Stable versions cannot have a prerelease suffix.' }
+          if ($env:CHANNEL -eq 'beta' -and $env:VERSION -notmatch '-beta(?:\.|$)') { throw 'Beta versions must contain -beta.' }
+          if ([string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY)) { throw 'TAURI_SIGNING_PRIVATE_KEY is not configured.' }
+
+      - name: Apply release version
+        shell: pwsh
+        run: |
+          $package = Get-Content package.json -Raw | ConvertFrom-Json
+          $package.version = $env:VERSION
+          $package | ConvertTo-Json -Depth 20 | Set-Content package.json -Encoding utf8
+          $config = Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json
+          $config.version = $env:VERSION
+          $config.bundle.createUpdaterArtifacts = $true
+          $config | ConvertTo-Json -Depth 30 | Set-Content src-tauri/tauri.release.conf.json -Encoding utf8
+          $cargo = Get-Content src-tauri/Cargo.toml -Raw
+          $cargo = $cargo -replace '(?m)^version = "[^"]+"', "version = `"$env:VERSION`""
+          $cargo | Set-Content src-tauri/Cargo.toml -Encoding utf8
+
+      - name: Install, test, and compile
+        shell: pwsh
+        run: |
+          npm ci
+          npm test
+          cargo test --manifest-path src-tauri/Cargo.toml
+          npm run tauri -- build --config src-tauri/tauri.release.conf.json
+
+      - name: Stage versioned downloads
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force release | Out-Null
+          $portable = "Verva-Translate-$env:VERSION-windows-x64-portable.exe"
+          Copy-Item src-tauri/target/release/verva-translator.exe "release/$portable"
+          $setupSource = Get-ChildItem src-tauri/target/release/bundle/nsis -Filter '*-setup.exe' | Select-Object -First 1
+          if (-not $setupSource -or -not (Test-Path "$($setupSource.FullName).sig")) { throw 'Tauri did not produce the expected signed NSIS artifacts.' }
+          $setup = "Verva-Translate-$env:VERSION-windows-x64-setup.exe"
+          Copy-Item $setupSource.FullName "release/$setup"
+          Copy-Item "$($setupSource.FullName).sig" "release/$setup.sig"
+          foreach ($name in @($portable, $setup)) {
+            $hash = (Get-FileHash "release/$name" -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $name" | Set-Content "release/$name.sha256" -Encoding ascii
+          }
+          "PORTABLE=$portable" >> $env:GITHUB_ENV
+          "SETUP=$setup" >> $env:GITHUB_ENV
+          "UPDATER=$setup" >> $env:GITHUB_ENV
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Verva-Translate-${{ inputs.version }}-windows-x64
+          path: release/
+          if-no-files-found: error
+
+      - name: Publish version and rolling updater releases
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if (gh release view $env:VERSION --repo $env:GITHUB_REPOSITORY 2>$null) {
+            if ('${{ inputs.replace_existing }}' -ne 'true') { throw "Release $env:VERSION already exists." }
+            gh release delete $env:VERSION --repo $env:GITHUB_REPOSITORY --cleanup-tag --yes
+          }
+          $files = Get-ChildItem release -File | ForEach-Object FullName
+          $args = @('release','create',$env:VERSION) + $files + @('--repo',$env:GITHUB_REPOSITORY,'--target','${{ github.sha }}','--title',"Verva Translate $env:VERSION")
+          if ([string]::IsNullOrWhiteSpace($env:RELEASE_NOTES)) { $args += '--generate-notes' } else { $env:RELEASE_NOTES | Set-Content release/notes.md -Encoding utf8; $args += @('--notes-file','release/notes.md') }
+          if ($env:CHANNEL -eq 'beta') { $args += '--prerelease' } else { $args += '--latest' }
+          & gh @args
+          $signature = Get-Content "release/$env:UPDATER.sig" -Raw
+          $encoded = [Uri]::EscapeDataString($env:UPDATER)
+          $manifest = @{
+            version = $env:VERSION
+            notes = $env:RELEASE_NOTES
+            pub_date = (Get-Date).ToUniversalTime().ToString('o')
+            platforms = @{ 'windows-x86_64' = @{ signature = $signature.Trim(); url = "https://github.com/$env:GITHUB_REPOSITORY/releases/download/$env:VERSION/$encoded" } }
+          }
+          $manifest | ConvertTo-Json -Depth 8 | Set-Content release/latest.json -Encoding utf8
+          $rolling = "updater-$env:CHANNEL"
+          if (gh release view $rolling --repo $env:GITHUB_REPOSITORY 2>$null) { gh release delete $rolling --repo $env:GITHUB_REPOSITORY --cleanup-tag --yes }
+          gh release create $rolling release/latest.json --repo $env:GITHUB_REPOSITORY --target '${{ github.sha }}' --title "Verva $env:CHANNEL updater manifest" --notes 'Rolling signed updater manifest. Do not install this asset manually.' --prerelease

@@ -1,0 +1,12 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "settings-window",
+  "description": "Settings can persist preferences and check updates.",
+  "windows": ["settings"],
+  "permissions": [
+    "core:default",
+    "store:default",
+    "updater:default",
+    "process:allow-restart"
+  ]
+}

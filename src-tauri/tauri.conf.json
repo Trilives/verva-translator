@@ -1,0 +1,49 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Verva Translate",
+  "version": "0.1.0-beta.1",
+  "identifier": "io.github.trilives.verva-translator",
+  "build": {
+    "beforeDevCommand": "npm.cmd run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm.cmd run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "security": { "csp": "default-src 'self'; connect-src ipc: http://ipc.localhost; img-src 'self' asset: data:; style-src 'self' 'unsafe-inline'; script-src 'self'" },
+    "windows": [{
+      "label": "main",
+      "title": "Verva Translate",
+      "width": 1180,
+      "height": 760,
+      "minWidth": 780,
+      "minHeight": 620,
+      "center": true,
+      "decorations": true,
+      "transparent": false
+    }]
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "createUpdaterArtifacts": false,
+    "icon": ["icons/icon.ico"],
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "displayLanguageSelector": true,
+        "languages": ["English", "SimpChinese"],
+        "installerIcon": "icons/icon.ico",
+        "installerHooks": "windows/hooks.nsh"
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "active": true,
+      "dialog": false,
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEIxMUFBNzVDRjhCRDE0OEUKUldTT0ZMMzRYS2Nhc2JXR1NacFV0TytVQTI0V2VEamxSbm1PQlQ0dDBFeU15N0VGZlBlZmJNLzAK",
+      "endpoints": ["https://github.com/Trilives/verva-translator/releases/download/updater-stable/latest.json"]
+    }
+  }
+}

@@ -1,0 +1,42 @@
+# Build output
+bin/
+obj/
+artifacts/
+.build/
+dist/
+node_modules/
+.npm-cache/
+.cargo-home/
+*.tsbuildinfo
+src-tauri/target/
+src-tauri/tauri.release.conf.json
+*.pdb
+*.msi
+*.msix
+*.appx
+*.appxbundle
+*.exe
+
+# Visual Studio and user settings
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Test and coverage output
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
+
+# Local credentials and environment files
+.env
+.env.*
+!.env.example
+secrets.json
+
+# Operating-system files
+.DS_Store
+Thumbs.db
+Desktop.ini
