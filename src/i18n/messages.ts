@@ -1,12 +1,15 @@
 import type { UiLocale } from "../domain/types";
 
 const en = {
-  appName: "Verva Translate", translate: "Translate", stop: "Stop", clear: "Clear input",
+  appName: "Verva Translate", workspace: "Workspace", translateWorkspace: "Translate with clarity",
+  translate: "Translate", stop: "Stop", clear: "Clear input",
   copy: "Copy result", copied: "Copied", history: "History", settings: "Settings",
   source: "Source language", target: "Target language", autoDetect: "Auto Detect",
   detected: "Detected", swap: "Swap languages", customLanguage: "Preferred language",
   sourcePlaceholder: "Enter the content to be translated here.",
   resultPlaceholder: "Your translation will appear here.", style: "Tone & style",
+  sourceText: "Source text", writeOrPaste: "Write or paste", translatedText: "Translated text",
+  translating: "Translating", result: "Result", characters: "characters",
   natural: "Natural", conversation: "Daily conversation", business: "Business",
   command: "Command issuance", custom: "Custom", editCustom: "Edit custom requirements",
   customTitle: "Custom style", customHint: "Describe the desired style and requirements.",
@@ -23,18 +26,22 @@ const en = {
   appearance: "Appearance", system: "System", light: "Light", dark: "Dark",
   updates: "Updates", automatic: "Automatic", manual: "Manual", stable: "Stable", beta: "Beta",
   checkUpdates: "Check for updates", shortcuts: "Shortcuts", closeSettings: "Close settings",
+  minimize: "Minimize", maximize: "Maximize", close: "Close",
   invalidUrl: "Use HTTPS for remote endpoints; HTTP is allowed only for localhost.",
   keyRequired: "Save an API key for the active configuration before translating.",
   translationFailed: "Translation failed", portableNotice: "Portable builds notify only and do not install updates automatically."
 };
 
 const zh: typeof en = {
-  appName: "Verva 翻译", translate: "翻译", stop: "停止", clear: "清空输入",
+  appName: "Verva 翻译", workspace: "工作区", translateWorkspace: "清晰准确地翻译",
+  translate: "翻译", stop: "停止", clear: "清空输入",
   copy: "复制结果", copied: "已复制", history: "历史记录", settings: "设置",
   source: "源语言", target: "目标语言", autoDetect: "自动检测",
   detected: "检测到", swap: "交换语言", customLanguage: "自定义语言",
   sourcePlaceholder: "Enter the content to be translated here.",
   resultPlaceholder: "Your translation will appear here.", style: "语气与风格",
+  sourceText: "原文", writeOrPaste: "输入或粘贴", translatedText: "译文",
+  translating: "正在翻译", result: "翻译结果", characters: "字符",
   natural: "自然", conversation: "日常对话", business: "商务", command: "命令下达",
   custom: "自定义", editCustom: "编辑自定义要求", customTitle: "自定义风格",
   customHint: "描述需要的风格与具体要求。", save: "保存", cancel: "取消",
@@ -51,6 +58,7 @@ const zh: typeof en = {
   appearance: "外观", system: "跟随系统", light: "浅色", dark: "深色",
   updates: "更新", automatic: "自动", manual: "手动", stable: "稳定版", beta: "测试版",
   checkUpdates: "检查更新", shortcuts: "快捷键", closeSettings: "关闭设置",
+  minimize: "最小化", maximize: "最大化", close: "关闭",
   invalidUrl: "远程地址必须使用 HTTPS；HTTP 仅允许 localhost。",
   keyRequired: "翻译前请先为当前配置保存 API 密钥。", translationFailed: "翻译失败",
   portableNotice: "便携版只提示新版本，不会自动安装更新。"

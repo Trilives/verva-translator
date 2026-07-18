@@ -8,6 +8,7 @@ export function EditorPane(props: Props) {
   const { t } = useI18n();
   return <div className="editor-grid">
     <section className="editor-card input-card">
+      <header className="editor-card-header"><div><span className="pane-kicker">{t("sourceText")}</span><strong>{t("writeOrPaste")}</strong></div><span className="character-count">{props.input.length.toLocaleString()} {t("characters")}</span></header>
       <Textarea className="editor-textarea" resize="vertical" value={props.input} placeholder={t("sourcePlaceholder")} onChange={(_, d) => props.onInput(d.value)} />
       <div className="editor-actions left-actions">
         <Button appearance="outline" icon={<Delete20Regular />} onClick={props.onClear}>{t("clear")}</Button>
@@ -17,7 +18,8 @@ export function EditorPane(props: Props) {
       </div>
     </section>
     <section className="editor-card output-card">
-      {props.busy && <div className="stream-status"><Spinner size="tiny" /> Streaming</div>}
+      <header className="editor-card-header"><div><span className="pane-kicker">{t("translatedText")}</span><strong>{props.busy ? t("translating") : t("result")}</strong></div><span className="character-count">{props.output.length.toLocaleString()} {t("characters")}</span></header>
+      {props.busy && <div className="stream-status"><Spinner size="tiny" /> {t("translating")}</div>}
       <Textarea className="editor-textarea" resize="vertical" value={props.output} placeholder={t("resultPlaceholder")} onChange={(_, d) => props.onOutput(d.value)} />
       <div className="editor-actions"><Button appearance="outline" icon={<Copy20Regular />} onClick={props.onCopy} disabled={!props.output}>{t("copy")}</Button></div>
     </section>
