@@ -4,7 +4,7 @@ import type { AppSettings } from "../domain/types";
 import { isTauri } from "./runtime";
 
 const key = "app-settings";
-const defaults = (): AppSettings => {
+export const defaultSettings = (): AppSettings => {
   const profile = defaultProfile();
   return {
     locale: "en", theme: "system", updateMode: "manual", updateChannel: "stable",
@@ -16,10 +16,10 @@ const defaults = (): AppSettings => {
 export async function loadSettings(): Promise<AppSettings> {
   if (!isTauri()) {
     const raw = localStorage.getItem(key);
-    return raw ? { ...defaults(), ...JSON.parse(raw) } : defaults();
+    return raw ? { ...defaultSettings(), ...JSON.parse(raw) } : defaultSettings();
   }
   const store = await load("settings.json", { autoSave: 150, defaults: {} });
-  return (await store.get<AppSettings>(key)) ?? defaults();
+  return (await store.get<AppSettings>(key)) ?? defaultSettings();
 }
 
 export async function saveSettings(settings: AppSettings) {

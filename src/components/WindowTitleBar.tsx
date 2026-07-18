@@ -13,21 +13,21 @@ function runWindowAction(action: (window: ReturnType<typeof getCurrentWindow>) =
   action(getCurrentWindow()).catch(() => undefined);
 }
 
-export function WindowTitleBar() {
+export function WindowTitleBar({ title, resizable = true }: { title?: string; resizable?: boolean } = {}) {
   const { t } = useI18n();
 
-  return <header className="window-titlebar" data-tauri-drag-region onDoubleClick={() => runWindowAction((window) => window.toggleMaximize())}>
+  return <header className="window-titlebar" data-tauri-drag-region onDoubleClick={() => resizable && runWindowAction((window) => window.toggleMaximize())}>
     <div className="window-identity" data-tauri-drag-region>
       <span className="titlebar-mark">V</span>
-      <span data-tauri-drag-region>{t("appName")}</span>
+      <span data-tauri-drag-region>{title ?? t("appName")}</span>
     </div>
     <div className="window-controls">
       <Tooltip content={t("minimize")} relationship="label">
         <Button appearance="subtle" icon={<Subtract16Regular />} aria-label={t("minimize")} onClick={() => runWindowAction((window) => window.minimize())} />
       </Tooltip>
-      <Tooltip content={t("maximize")} relationship="label">
+      {resizable && <Tooltip content={t("maximize")} relationship="label">
         <Button appearance="subtle" icon={<Maximize16Regular />} aria-label={t("maximize")} onClick={() => runWindowAction((window) => window.toggleMaximize())} />
-      </Tooltip>
+      </Tooltip>}
       <Tooltip content={t("close")} relationship="label">
         <Button className="window-close" appearance="subtle" icon={<Dismiss16Regular />} aria-label={t("close")} onClick={() => runWindowAction((window) => window.close())} />
       </Tooltip>

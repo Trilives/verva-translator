@@ -7,9 +7,9 @@ export function Sidebar({ onHistory, onSettings }: { onHistory: () => void; onSe
   return <aside className="sidebar">
     <div className="sidebar-primary">
       <Button className="nav-button active" appearance="subtle" icon={<Translate24Regular />} aria-current="page">{t("workspace")}</Button>
+      <Tooltip content={t("history")} relationship="label"><Button className="nav-button" appearance="subtle" icon={<History24Regular />} onClick={onHistory}>{t("history")}</Button></Tooltip>
     </div>
     <div className="sidebar-actions">
-      <Tooltip content={t("history")} relationship="label"><Button className="nav-button" appearance="subtle" icon={<History24Regular />} onClick={onHistory}>{t("history")}</Button></Tooltip>
       <Tooltip content={t("settings")} relationship="label"><Button className="nav-button" appearance="subtle" icon={<Settings24Regular />} onClick={onSettings}>{t("settings")}</Button></Tooltip>
     </div>
   </aside>;

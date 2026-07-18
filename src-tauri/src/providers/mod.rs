@@ -6,6 +6,17 @@ mod sse;
 use crate::models::{ConversationTurn, ProviderKind, ProviderProfile};
 use std::sync::{atomic::AtomicBool, Arc};
 
+/// Provider-neutral inputs for one streamed translation. Grouping them keeps
+/// the adapter signatures readable as fields are added.
+pub(crate) struct StreamRequest<'a> {
+    pub client: &'a reqwest::Client,
+    pub profile: &'a ProviderProfile,
+    pub key: &'a str,
+    pub system: &'a str,
+    pub history: &'a [ConversationTurn],
+    pub prompt: &'a str,
+}
+
 pub async fn stream_translation<F>(
     client: &reqwest::Client,
     profile: &ProviderProfile,
@@ -19,34 +30,17 @@ where
     F: FnMut(String) + Send,
 {
     validate_endpoint(&profile.base_url)?;
-    let system = prompt::system_prompt();
+    let request = StreamRequest {
+        client,
+        profile,
+        key: api_key,
+        system: prompt::system_prompt(),
+        history,
+        prompt: user_prompt,
+    };
     match profile.kind {
-        ProviderKind::Openai => {
-            openai::stream(
-                client,
-                profile,
-                api_key,
-                system,
-                history,
-                user_prompt,
-                cancel,
-                on_delta,
-            )
-            .await
-        }
-        ProviderKind::Claude => {
-            claude::stream(
-                client,
-                profile,
-                api_key,
-                system,
-                history,
-                user_prompt,
-                cancel,
-                on_delta,
-            )
-            .await
-        }
+        ProviderKind::Openai => openai::stream(request, cancel, on_delta).await,
+        ProviderKind::Claude => claude::stream(request, cancel, on_delta).await,
     }
 }
 

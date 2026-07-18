@@ -1,20 +1,23 @@
-use crate::models::{ConversationTurn, ProviderProfile};
+use super::StreamRequest;
 use serde_json::{json, Value};
 use std::sync::{atomic::AtomicBool, Arc};
 
 pub async fn stream<F>(
-    client: &reqwest::Client,
-    profile: &ProviderProfile,
-    key: &str,
-    system: &str,
-    history: &[ConversationTurn],
-    prompt: &str,
+    request: StreamRequest<'_>,
     cancel: Arc<AtomicBool>,
     mut on_delta: F,
 ) -> Result<(), String>
 where
     F: FnMut(String) + Send,
 {
+    let StreamRequest {
+        client,
+        profile,
+        key,
+        system,
+        history,
+        prompt,
+    } = request;
     let mut messages = Vec::new();
     for turn in history {
         messages.push(json!({"role":"user","content":turn.user}));
