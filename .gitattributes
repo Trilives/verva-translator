@@ -1,0 +1,8 @@
+# Normalize to LF in the repository; check out native line endings.
+# Without this, builds that touch Cargo.toml or src-tauri/gen/schemas/*.json
+# leave them permanently "modified" with no content change.
+* text=auto
+
+*.png binary
+*.ico binary
+*.exe binary
