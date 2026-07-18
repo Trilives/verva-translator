@@ -1,28 +1,97 @@
 import { Button, Field, Input, Select, Switch } from "@fluentui/react-components";
-import { Delete20Regular, Key20Regular } from "@fluentui/react-icons";
-import { useState } from "react";
+import { Checkmark20Filled, Delete20Regular, Save20Regular } from "@fluentui/react-icons";
+import { useEffect, useState } from "react";
 import type { ProviderProfile } from "../domain/types";
 import { saveApiKey } from "../services/backend";
 import { useI18n } from "../i18n/I18nContext";
+import { useActionFeedback } from "../hooks/useActionFeedback";
 
-export function ProfileEditor({ profile, canDelete, onChange, onDelete }: { profile: ProviderProfile; canDelete: boolean; onChange: (p: ProviderProfile) => void; onDelete: () => void }) {
-  const { t } = useI18n(); const [key, setKey] = useState(""); const [urlError, setUrlError] = useState(false);
-  const patch = (value: Partial<ProviderProfile>) => onChange({ ...profile, ...value });
-  const validateUrl = (value: string) => {
-    try { const url = new URL(value); const valid = url.protocol === "https:" || (url.protocol === "http:" && ["localhost", "127.0.0.1", "::1"].includes(url.hostname)); setUrlError(!valid); return valid; }
-    catch { setUrlError(true); return false; }
+interface Props {
+  profile: ProviderProfile;
+  canDelete: boolean;
+  onSave: (profile: ProviderProfile) => Promise<void> | void;
+  onDelete: () => void;
+}
+
+const isValidUrl = (value: string) => {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || (url.protocol === "http:" && ["localhost", "127.0.0.1", "::1"].includes(url.hostname));
+  } catch { return false; }
+};
+
+/** Full editor for one configuration. Everything commits through a single Save. */
+export function ProfileEditor({ profile, canDelete, onSave, onDelete }: Props) {
+  const { t } = useI18n();
+  const [draft, setDraft] = useState(profile);
+  const [key, setKey] = useState("");
+  const saved = useActionFeedback();
+  useEffect(() => { setDraft(profile); setKey(""); }, [profile]);
+
+  const patch = <K extends keyof ProviderProfile>(field: K, value: ProviderProfile[K]) =>
+    setDraft((current) => ({ ...current, [field]: value }));
+
+  const urlBroken = !isValidUrl(draft.baseUrl);
+  const dirty = key.trim().length > 0
+    || (Object.keys(draft) as (keyof ProviderProfile)[]).some((field) => draft[field] !== profile[field]);
+
+  const save = async () => {
+    if (urlBroken) return;
+    let next = draft;
+    if (key.trim()) {
+      await saveApiKey(profile.id, key.trim());
+      setKey("");
+      next = { ...next, hasApiKey: true };
+    }
+    saved.trigger();
+    await onSave(next);
   };
-  const saveKey = async () => { if (!key.trim()) return; await saveApiKey(profile.id, key.trim()); setKey(""); patch({ hasApiKey: true }); };
+
   return <div className="profile-editor">
     <div className="form-grid">
-      <Field label={t("profile")}><Input value={profile.name} onChange={(_, d) => patch({ name: d.value })} /></Field>
-      <Field label={t("provider")}><Select value={profile.kind} onChange={(_, d) => patch({ kind: d.value as ProviderProfile["kind"] })}><option value="openai">{t("openAi")}</option><option value="claude">{t("claude")}</option></Select></Field>
-      <Field label={t("baseUrl")} validationMessage={urlError ? t("invalidUrl") : undefined} validationState={urlError ? "error" : "none"}><Input value={profile.baseUrl} onBlur={() => validateUrl(profile.baseUrl)} onChange={(_, d) => patch({ baseUrl: d.value })} /></Field>
-      <Field label={t("model")}><Input value={profile.model} onChange={(_, d) => patch({ model: d.value })} /></Field>
-      <Field label={t("apiKey")} hint={profile.hasApiKey ? t("apiKeySaved") : t("apiKeyMissing")}><div className="key-row"><Input type="password" value={key} onChange={(_, d) => setKey(d.value)} /><Button icon={<Key20Regular />} onClick={saveKey} disabled={!key.trim()}>{t("save")}</Button></div></Field>
-      <Field label="Context limit"><Input type="number" min={1024} value={String(profile.contextLimit)} onChange={(_, d) => patch({ contextLimit: Math.max(1024, Number(d.value) || 1024) })} /></Field>
+      <Field label={t("profile")}>
+        <Input value={draft.name} onChange={(_, d) => patch("name", d.value)} />
+      </Field>
+      <Field label={t("provider")}>
+        <Select value={draft.kind} onChange={(_, d) => patch("kind", d.value as ProviderProfile["kind"])}>
+          <option value="openai">{t("openAi")}</option>
+          <option value="claude">{t("claude")}</option>
+        </Select>
+      </Field>
+      <Field label={t("baseUrl")} validationMessage={urlBroken ? t("invalidUrl") : undefined}
+        validationState={urlBroken ? "error" : "none"}>
+        <Input value={draft.baseUrl} onChange={(_, d) => patch("baseUrl", d.value)} />
+      </Field>
+      <Field label={t("model")}>
+        <Input value={draft.model} onChange={(_, d) => patch("model", d.value)} />
+      </Field>
+      <Field label={t("apiKey")} hint={profile.hasApiKey ? t("apiKeySaved") : t("apiKeyMissing")}>
+        <Input type="password" value={key} placeholder={t("apiKeyPlaceholder")} onChange={(_, d) => setKey(d.value)} />
+      </Field>
+      <Field label={t("contextLimit")}>
+        <Input type="number" min={1024} value={String(draft.contextLimit)}
+          onChange={(_, d) => patch("contextLimit", Math.max(1024, Number(d.value) || 1024))} />
+      </Field>
     </div>
-    <div className="switch-list"><Switch checked={profile.thinking} onChange={(_, d) => patch({ thinking: d.checked })} label={t("thinking")} /><div><Switch checked={profile.longConversation} onChange={(_, d) => patch({ longConversation: d.checked })} label={t("longConversation")} /><p>{t("longConversationHint")}</p></div></div>
-    <Button appearance="subtle" icon={<Delete20Regular />} disabled={!canDelete} onClick={onDelete}>{t("deleteProfile")}</Button>
+
+    <div className="switch-list">
+      <Switch checked={draft.thinking} label={t("thinking")} onChange={(_, d) => patch("thinking", d.checked)} />
+      <div>
+        <Switch checked={draft.longConversation} label={t("longConversation")}
+          onChange={(_, d) => patch("longConversation", d.checked)} />
+        <p>{t("longConversationHint")}</p>
+      </div>
+    </div>
+
+    <div className="profile-footer">
+      <Button className="press" appearance="subtle" icon={<Delete20Regular />} disabled={!canDelete} onClick={onDelete}>
+        {t("deleteProfile")}
+      </Button>
+      <Button className={`press save-button ${saved.fired ? "fired" : ""}`} appearance="primary"
+        icon={saved.fired ? <Checkmark20Filled /> : <Save20Regular />}
+        disabled={!dirty || urlBroken} onClick={save}>
+        {saved.fired ? t("saved") : t("save")}
+      </Button>
+    </div>
   </div>;
 }

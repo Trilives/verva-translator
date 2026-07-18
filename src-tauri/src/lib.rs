@@ -6,7 +6,7 @@ mod security;
 mod state;
 
 use state::AppState;
-use tauri::{Emitter, Manager};
+use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -33,8 +33,6 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            commands::windows::open_settings_window,
-            commands::windows::close_settings_window,
             commands::secrets::save_api_key,
             commands::secrets::has_api_key,
             commands::secrets::delete_api_key,
@@ -45,13 +43,6 @@ pub fn run() {
             commands::updates::install_mode,
             commands::updates::check_update
         ])
-        .on_window_event(|window, event| {
-            if window.label() == "settings"
-                && matches!(event, tauri::WindowEvent::CloseRequested { .. })
-            {
-                let _ = window.emit("settings-closing", ());
-            }
-        })
         .run(tauri::generate_context!())
         .expect("error while running Verva Translate");
 }

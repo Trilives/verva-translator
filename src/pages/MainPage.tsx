@@ -1,36 +1,49 @@
 import { MessageBar, MessageBarBody } from "@fluentui/react-components";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { AppSettings, HistoryEntry, TranslationStyle } from "../domain/types";
+import type { UiState } from "../services/uiState";
 import { useTranslation } from "../hooks/useTranslation";
 import { useShortcuts } from "../hooks/useShortcuts";
 import { useI18n } from "../i18n/I18nContext";
-import { openSettingsWindow } from "../services/backend";
-import { Sidebar } from "../components/Sidebar";
 import { MainHeader } from "../components/MainHeader";
-import { LanguageBar } from "../components/LanguageBar";
 import { StylePicker } from "../components/StylePicker";
-import { EditorPane } from "../components/EditorPane";
+import { TranslatePanes } from "../components/TranslatePanes";
 import { CustomStyleDialog } from "../components/CustomStyleDialog";
-import { HistoryDialog } from "../components/HistoryDialog";
 import { UpdateDialog } from "../components/UpdateDialog";
 import { checkForUpdate, type UpdateResult } from "../services/updater";
 import { detectInstallMode } from "../services/backend";
-import { WindowTitleBar } from "../components/WindowTitleBar";
 
-export function MainPage({ settings, update }: { settings: AppSettings; update: (value: AppSettings | ((s: AppSettings) => AppSettings)) => Promise<void> }) {
+interface Props {
+  settings: AppSettings;
+  update: (value: AppSettings | ((s: AppSettings) => AppSettings)) => Promise<void>;
+  ui: UiState;
+  patchUi: (changes: Partial<UiState>) => void;
+  restored?: HistoryEntry;
+  onRestored: () => void;
+}
+
+export function MainPage({ settings, update, ui, patchUi, restored, onRestored }: Props) {
   const { t } = useI18n(); const translation = useTranslation();
-  const [input, setInput] = useState(""); const [source, setSource] = useState("Auto Detect");
-  const [target, setTarget] = useState("English"); const [customTarget, setCustomTarget] = useState("");
-  const [style, setStyle] = useState<TranslationStyle>("natural"); const [customStyle, setCustomStyle] = useState("");
-  const [customOpen, setCustomOpen] = useState(false); const [historyOpen, setHistoryOpen] = useState(false);
+  // Source text is intentionally not persisted; see services/uiState.ts.
+  const [input, setInput] = useState("");
+  const [customOpen, setCustomOpen] = useState(false);
   const [availableUpdate, setAvailableUpdate] = useState<UpdateResult>(); const [portable, setPortable] = useState(false);
   const active = settings.profiles.find((p) => p.id === settings.activeProfileId) ?? settings.profiles[0];
   const contextWarning = translation.session && translation.session.usedTokens >= translation.session.limit / 2;
+  const { source, target, customTarget, style, customStyle } = ui;
+
   useEffect(() => {
     if (settings.updateMode !== "automatic") return;
     detectInstallMode().then((mode) => setPortable(mode === "portable"));
     checkForUpdate(settings.updateChannel, false).then((result) => result.available && setAvailableUpdate(result)).catch(() => {});
   }, [settings.updateChannel, settings.updateMode]);
+
+  useEffect(() => {
+    if (!restored) return;
+    setInput(restored.sourceText);
+    patchUi({ source: restored.sourceLanguage, target: restored.targetLanguage, style: restored.style });
+    translation.restore(restored); onRestored();
+  }, [restored, translation, onRestored, patchUi]);
 
   const translate = useCallback(() => {
     if (!active?.hasApiKey) return;
@@ -44,31 +57,36 @@ export function MainPage({ settings, update }: { settings: AppSettings; update: 
   const swap = () => {
     const resolvedSource = source === "Auto Detect" ? translation.detectedLanguage : source;
     if (!resolvedSource || target === "Custom") return;
-    setSource(target); setTarget(resolvedSource); translation.setDetectedLanguage(undefined);
+    patchUi({ source: target, target: resolvedSource });
+    translation.setDetectedLanguage(undefined);
   };
-  const restore = (entry: HistoryEntry) => { setInput(entry.sourceText); setSource(entry.sourceLanguage); setTarget(entry.targetLanguage); setStyle(entry.style); translation.restore(entry); };
   const changeInput = (value: string) => { setInput(value); translation.setDetectedLanguage(undefined); };
 
-  return <div className="app-shell">
-    <WindowTitleBar />
-    <div className="app-layout">
-      <Sidebar onHistory={() => setHistoryOpen(true)} onSettings={openSettingsWindow} />
-      <main className="main-content">
-        <MainHeader profiles={settings.profiles} activeId={settings.activeProfileId} session={active?.longConversation ? translation.session : undefined} onProfile={(id) => update({ ...settings, activeProfileId: id })} onRefresh={translation.refreshSession} />
-        <div className="message-stack">
-          {!active?.hasApiKey && <MessageBar intent="warning"><MessageBarBody>{t("keyRequired")}</MessageBarBody></MessageBar>}
-          {contextWarning && <MessageBar intent="warning"><MessageBarBody>{t("contextWarning")}</MessageBarBody></MessageBar>}
-          {translation.error && <MessageBar intent="error"><MessageBarBody>{t("translationFailed")}: {translation.error}</MessageBarBody></MessageBar>}
-        </div>
-        <section className="control-surface">
-          <LanguageBar source={source} target={target} customTarget={customTarget} detected={translation.detectedLanguage} onSource={(v) => { setSource(v); translation.setDetectedLanguage(undefined); }} onTarget={setTarget} onCustomTarget={setCustomTarget} onSwap={swap} />
-          <StylePicker value={style} onChange={setStyle} onEditCustom={() => setCustomOpen(true)} />
-        </section>
-        <EditorPane input={input} output={translation.output} busy={translation.busy} onInput={changeInput} onOutput={translation.setOutput} onClear={clear} onCopy={copy} onTranslate={translate} onStop={translation.stop} />
-      </main>
+  return <div className="workspace">
+    <MainHeader profiles={settings.profiles} activeId={settings.activeProfileId}
+      session={active?.longConversation ? translation.session : undefined}
+      onProfile={(id) => update({ ...settings, activeProfileId: id })} onRefresh={translation.refreshSession} />
+
+    <div className="message-stack">
+      {!active?.hasApiKey && <MessageBar intent="warning"><MessageBarBody>{t("keyRequired")}</MessageBarBody></MessageBar>}
+      {contextWarning && <MessageBar intent="warning"><MessageBarBody>{t("contextWarning")}</MessageBarBody></MessageBar>}
+      {translation.error && <MessageBar intent="error"><MessageBarBody>{t("translationFailed")}: {translation.error}</MessageBarBody></MessageBar>}
     </div>
-    <CustomStyleDialog open={customOpen} value={customStyle} onCancel={() => setCustomOpen(false)} onSave={(value) => { setCustomStyle(value); setCustomOpen(false); }} />
-    <HistoryDialog open={historyOpen} onCancel={() => setHistoryOpen(false)} onRestore={restore} />
-    {availableUpdate?.version && <UpdateDialog version={availableUpdate.version} body={availableUpdate.body} portable={portable} onCancel={() => setAvailableUpdate(undefined)} onInstall={() => checkForUpdate(settings.updateChannel, !portable)} />}
+
+    <StylePicker value={style} onChange={(next: TranslationStyle) => patchUi({ style: next })}
+      onEditCustom={() => setCustomOpen(true)} />
+
+    <TranslatePanes
+      source={source} target={target} customTarget={customTarget} detected={translation.detectedLanguage}
+      input={input} output={translation.output} busy={translation.busy}
+      onSource={(v) => { patchUi({ source: v }); translation.setDetectedLanguage(undefined); }}
+      onTarget={(v) => patchUi({ target: v })} onCustomTarget={(v) => patchUi({ customTarget: v })} onSwap={swap}
+      onInput={changeInput} onOutput={translation.setOutput}
+      onClear={clear} onCopy={copy} onTranslate={translate} onStop={translation.stop} />
+
+    <CustomStyleDialog open={customOpen} value={customStyle} onCancel={() => setCustomOpen(false)}
+      onSave={(value) => { patchUi({ customStyle: value }); setCustomOpen(false); }} />
+    {availableUpdate?.version && <UpdateDialog version={availableUpdate.version} body={availableUpdate.body} portable={portable}
+      onCancel={() => setAvailableUpdate(undefined)} onInstall={() => checkForUpdate(settings.updateChannel, !portable)} />}
   </div>;
 }

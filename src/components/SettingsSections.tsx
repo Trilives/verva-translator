@@ -1,7 +1,8 @@
-import { Button, Field, Input, Radio, RadioGroup } from "@fluentui/react-components";
+import { Button, Radio, RadioGroup } from "@fluentui/react-components";
 import { ArrowSync20Regular } from "@fluentui/react-icons";
 import type { AppSettings, UiLocale, UpdateChannel } from "../domain/types";
 import { useI18n } from "../i18n/I18nContext";
+import { ShortcutRecorder } from "./ShortcutRecorder";
 
 type Update = (value: AppSettings) => Promise<void>;
 
@@ -51,6 +52,8 @@ export function UpdatesSection({ settings, update, status, onCheck }: { settings
   </div>;
 }
 
+const SHORTCUT_DEFAULTS = { translate: "Ctrl+Enter", clear: "Ctrl+L", copy: "Ctrl+Shift+C" } as const;
+
 export function ShortcutsSection({ settings, update }: { settings: AppSettings; update: Update }) {
   const { t } = useI18n();
   const set = (key: keyof AppSettings["shortcuts"], value: string) =>
@@ -58,10 +61,12 @@ export function ShortcutsSection({ settings, update }: { settings: AppSettings; 
   return <div className="settings-stack">
     <section className="settings-card">
       <h2>{t("shortcuts")}</h2>
+      <p className="settings-note">{t("shortcutsHint")}</p>
       <div className="form-grid">
-        <Field label={t("translate")}><Input value={settings.shortcuts.translate} onChange={(_, d) => set("translate", d.value)} /></Field>
-        <Field label={t("clear")}><Input value={settings.shortcuts.clear} onChange={(_, d) => set("clear", d.value)} /></Field>
-        <Field label={t("copy")}><Input value={settings.shortcuts.copy} onChange={(_, d) => set("copy", d.value)} /></Field>
+        {(["translate", "clear", "copy"] as const).map((action) => (
+          <ShortcutRecorder key={action} label={t(action)} value={settings.shortcuts[action]}
+            fallback={SHORTCUT_DEFAULTS[action]} onChange={(value) => set(action, value)} />
+        ))}
       </div>
     </section>
   </div>;

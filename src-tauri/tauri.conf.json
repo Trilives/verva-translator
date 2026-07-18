@@ -16,11 +16,11 @@
       "title": "Verva Translate",
       "width": 1180,
       "height": 760,
-      "minWidth": 780,
-      "minHeight": 620,
+      "minWidth": 900,
+      "minHeight": 640,
       "center": true,
-      "decorations": false,
-      "transparent": false
+      "transparent": true,
+      "windowEffects": { "effects": ["mica"] }
     }]
   },
   "bundle": {
