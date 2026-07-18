@@ -12,13 +12,15 @@ interface Props {
 export function LanguageBar(props: Props) {
   const { t } = useI18n();
   return <div className="language-bar">
-    <Field label={t("source")} className="language-field">
+    <Field label={t("source")} className="language-field source-language">
       <Dropdown value={props.source} selectedOptions={[props.source]} onOptionSelect={(_, d) => props.onSource(String(d.optionValue))}>
         {sourceLanguages.map((value) => <Option key={value} value={value}>{value === "Auto Detect" ? t("autoDetect") : value}</Option>)}
       </Dropdown>
     </Field>
-    {props.source === "Auto Detect" && props.detected && <span className="detected-pill">{t("detected")}: {props.detected}</span>}
-    <Button className="swap-button" appearance="subtle" icon={<ArrowSwap20Regular />} aria-label={t("swap")} onClick={props.onSwap} />
+    <div className="swap-column">
+      {props.source === "Auto Detect" && props.detected && <span className="detected-pill">{t("detected")}: {props.detected}</span>}
+      <Button className="swap-button" appearance="subtle" shape="circular" icon={<ArrowSwap20Regular />} aria-label={t("swap")} onClick={props.onSwap} />
+    </div>
     <Field label={t("target")} className="language-field">
       <Dropdown value={props.target} selectedOptions={[props.target]} onOptionSelect={(_, d) => props.onTarget(String(d.optionValue))}>
         {targetLanguages.map((value) => <Option key={value} value={value}>{value === "Custom" ? t("custom") : value}</Option>)}

@@ -15,6 +15,7 @@ import { HistoryDialog } from "../components/HistoryDialog";
 import { UpdateDialog } from "../components/UpdateDialog";
 import { checkForUpdate, type UpdateResult } from "../services/updater";
 import { detectInstallMode } from "../services/backend";
+import { WindowTitleBar } from "../components/WindowTitleBar";
 
 export function MainPage({ settings, update }: { settings: AppSettings; update: (value: AppSettings | ((s: AppSettings) => AppSettings)) => Promise<void> }) {
   const { t } = useI18n(); const translation = useTranslation();
@@ -48,16 +49,26 @@ export function MainPage({ settings, update }: { settings: AppSettings; update: 
   const restore = (entry: HistoryEntry) => { setInput(entry.sourceText); setSource(entry.sourceLanguage); setTarget(entry.targetLanguage); setStyle(entry.style); translation.restore(entry); };
   const changeInput = (value: string) => { setInput(value); translation.setDetectedLanguage(undefined); };
 
-  return <div className="app-layout"><Sidebar onHistory={() => setHistoryOpen(true)} onSettings={openSettingsWindow} /><main className="main-content">
-    <MainHeader profiles={settings.profiles} activeId={settings.activeProfileId} session={active?.longConversation ? translation.session : undefined} onProfile={(id) => update({ ...settings, activeProfileId: id })} onRefresh={translation.refreshSession} />
-    {!active?.hasApiKey && <MessageBar intent="warning"><MessageBarBody>{t("keyRequired")}</MessageBarBody></MessageBar>}
-    {contextWarning && <MessageBar intent="warning"><MessageBarBody>{t("contextWarning")}</MessageBarBody></MessageBar>}
-    {translation.error && <MessageBar intent="error"><MessageBarBody>{t("translationFailed")}: {translation.error}</MessageBarBody></MessageBar>}
-    <LanguageBar source={source} target={target} customTarget={customTarget} detected={translation.detectedLanguage} onSource={(v) => { setSource(v); translation.setDetectedLanguage(undefined); }} onTarget={setTarget} onCustomTarget={setCustomTarget} onSwap={swap} />
-    <StylePicker value={style} onChange={setStyle} onEditCustom={() => setCustomOpen(true)} />
-    <EditorPane input={input} output={translation.output} busy={translation.busy} onInput={changeInput} onOutput={translation.setOutput} onClear={clear} onCopy={copy} onTranslate={translate} onStop={translation.stop} />
-  </main><CustomStyleDialog open={customOpen} value={customStyle} onCancel={() => setCustomOpen(false)} onSave={(value) => { setCustomStyle(value); setCustomOpen(false); }} />
-  <HistoryDialog open={historyOpen} onCancel={() => setHistoryOpen(false)} onRestore={restore} />
-  {availableUpdate?.version && <UpdateDialog version={availableUpdate.version} body={availableUpdate.body} portable={portable} onCancel={() => setAvailableUpdate(undefined)} onInstall={() => checkForUpdate(settings.updateChannel, !portable)} />}
+  return <div className="app-shell">
+    <WindowTitleBar />
+    <div className="app-layout">
+      <Sidebar onHistory={() => setHistoryOpen(true)} onSettings={openSettingsWindow} />
+      <main className="main-content">
+        <MainHeader profiles={settings.profiles} activeId={settings.activeProfileId} session={active?.longConversation ? translation.session : undefined} onProfile={(id) => update({ ...settings, activeProfileId: id })} onRefresh={translation.refreshSession} />
+        <div className="message-stack">
+          {!active?.hasApiKey && <MessageBar intent="warning"><MessageBarBody>{t("keyRequired")}</MessageBarBody></MessageBar>}
+          {contextWarning && <MessageBar intent="warning"><MessageBarBody>{t("contextWarning")}</MessageBarBody></MessageBar>}
+          {translation.error && <MessageBar intent="error"><MessageBarBody>{t("translationFailed")}: {translation.error}</MessageBarBody></MessageBar>}
+        </div>
+        <section className="control-surface">
+          <LanguageBar source={source} target={target} customTarget={customTarget} detected={translation.detectedLanguage} onSource={(v) => { setSource(v); translation.setDetectedLanguage(undefined); }} onTarget={setTarget} onCustomTarget={setCustomTarget} onSwap={swap} />
+          <StylePicker value={style} onChange={setStyle} onEditCustom={() => setCustomOpen(true)} />
+        </section>
+        <EditorPane input={input} output={translation.output} busy={translation.busy} onInput={changeInput} onOutput={translation.setOutput} onClear={clear} onCopy={copy} onTranslate={translate} onStop={translation.stop} />
+      </main>
+    </div>
+    <CustomStyleDialog open={customOpen} value={customStyle} onCancel={() => setCustomOpen(false)} onSave={(value) => { setCustomStyle(value); setCustomOpen(false); }} />
+    <HistoryDialog open={historyOpen} onCancel={() => setHistoryOpen(false)} onRestore={restore} />
+    {availableUpdate?.version && <UpdateDialog version={availableUpdate.version} body={availableUpdate.body} portable={portable} onCancel={() => setAvailableUpdate(undefined)} onInstall={() => checkForUpdate(settings.updateChannel, !portable)} />}
   </div>;
 }

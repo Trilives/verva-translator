@@ -1,6 +1,6 @@
 [package]
 name = "verva-translator"
-version = "0.1.0-beta.1"
+version = "0.1.0-beta.2"
 description = "A bring-your-own-AI translator for Windows"
 authors = ["Trilives"]
 edition = "2021"
