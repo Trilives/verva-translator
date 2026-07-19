@@ -56,7 +56,13 @@ const zh: Record<LanguageId, string> = {
 
 export const languageNames: Record<UiLocale, Record<LanguageId, string>> = { en, "zh-CN": zh };
 
-const isKnown = (value: string): value is LanguageId => value in en;
+/**
+ * `Object.hasOwn`, not `in`: `in` walks the prototype chain, so a value like
+ * `toString` or `constructor` would report as known and the lookup would return
+ * a function that React cannot render. The detected language is model output,
+ * so this path takes untrusted strings.
+ */
+const isKnown = (value: string): value is LanguageId => Object.hasOwn(en, value);
 
 /**
  * Label for a language identifier. Falls back to the raw string, because the

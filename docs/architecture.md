@@ -291,10 +291,12 @@ identifier would change what reaches the model and orphan existing history.
 Installer localization is handled by Tauri NSIS with English and Simplified
 Chinese and `displayLanguageSelector: true`.
 
-The empty editor prompts are deliberately English in both UI modes:
-
-- `Enter the content to be translated here.`
-- `Your translation will appear here.`
+The empty editor prompts follow the interface language like every other string.
+They were previously pinned to English in both modes; that is no longer the
+case, and `messages.test.ts` now asserts the opposite -- that they are actually
+translated rather than copied across. The only strings legitimately identical in
+both dictionaries are the interface-language endonyms, since the switcher shows
+each language in its own script either way.
 
 ## 9. Installation and updates
 

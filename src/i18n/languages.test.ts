@@ -36,6 +36,20 @@ describe("language names", () => {
     expect(languageLabel("en", "")).toBe("");
   });
 
+  /**
+   * Regression: membership was tested with `in`, which walks the prototype
+   * chain, so these resolved to functions off Object.prototype and React threw
+   * when asked to render one. The detected language is model output, so this
+   * lookup must tolerate any string.
+   */
+  it("does not resolve inherited object properties", () => {
+    for (const probe of ["toString", "constructor", "valueOf", "hasOwnProperty", "__proto__"]) {
+      const label = languageLabel("zh-CN", probe);
+      expect(typeof label).toBe("string");
+      expect(label).toBe(probe);
+    }
+  });
+
   it("translates known values", () => {
     expect(languageLabel("zh-CN", "Japanese")).toBe("日语");
     expect(languageLabel("zh-CN", "Auto Detect")).toBe("自动检测");
