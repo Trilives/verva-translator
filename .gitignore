@@ -40,3 +40,6 @@ secrets.json
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Local agent/editor tooling (machine-specific absolute paths)
+.claude/
