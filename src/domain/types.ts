@@ -1,7 +1,17 @@
 export type UiLocale = "en" | "zh-CN";
 export type ProviderKind = "openai" | "claude";
 export type UpdateChannel = "stable" | "beta";
-export type TranslationStyle = "natural" | "conversation" | "business" | "command" | "custom";
+export type BuiltinStyle = "natural" | "conversation" | "business" | "command";
+
+/** A builtin style key, or the id of a user-defined style. */
+export type TranslationStyle = BuiltinStyle | (string & {});
+
+/** A user-defined tone, presented in the row exactly like the builtins. */
+export interface CustomStyle {
+  id: string;
+  name: string;
+  requirements: string;
+}
 
 export interface ProviderProfile {
   id: string;

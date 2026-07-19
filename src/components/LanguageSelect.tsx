@@ -10,26 +10,25 @@ interface Props {
 }
 
 export function LanguageSelect({ kind, value, detected, onChange }: Props) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const options = kind === "source" ? sourceLanguages : targetLanguages;
-  const label = (option: string) =>
-    option === "Auto Detect" ? t("autoDetect") : option === "Custom" ? t("custom") : option;
 
   return <div className="language-select">
     <span className="section-label">
       {t(kind)}
       {kind === "source" && value === "Auto Detect" && detected && (
-        <span className="detected-pill">{t("detected")}: {detected}</span>
+        <span className="detected-pill">{t("detected")}: {language(detected)}</span>
       )}
     </span>
     <Dropdown
       className="language-dropdown"
       aria-label={t(kind)}
-      value={label(value)}
+      value={language(value)}
       selectedOptions={[value]}
+      /* `optionValue` is the canonical English identifier, never the label. */
       onOptionSelect={(_, data) => onChange(String(data.optionValue))}
     >
-      {options.map((option) => <Option key={option} value={option}>{label(option)}</Option>)}
+      {options.map((option) => <Option key={option} value={option}>{language(option)}</Option>)}
     </Dropdown>
   </div>;
 }

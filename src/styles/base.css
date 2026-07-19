@@ -1,0 +1,86 @@
+:root {
+  font-family: "Segoe UI Variable", "Segoe UI", sans-serif;
+  font-synthesis: none;
+}
+
+* { box-sizing: border-box; }
+/* No `min-width` floor here: it clipped the right-hand side of the window with
+   no way to scroll to it. The responsive rules below carry narrow widths. */
+html, body, #root { margin: 0; height: 100%; }
+
+/* Mica shows through: the window itself must not paint an opaque background. */
+body { overflow: hidden; background: transparent; }
+
+/* Fluent copies FluentProvider's className onto the portal mount node it
+   appends to <body> (Dropdown, Tooltip, Dialog). Scoping to `#root >` keeps app
+   sizing off that node -- otherwise the portal becomes a full-viewport opaque
+   sheet at z-index 1000000 that covers the whole window. */
+#root > .provider-root { height: 100%; color: var(--colorNeutralForeground1); background: transparent; }
+
+/* Belt and braces: never let a body-level portal claim layout size. */
+body > .fui-FluentProvider { min-width: 0; min-height: 0; height: auto; background: none; }
+
+.splash { height: 100%; display: grid; place-items: center; }
+.brand-mark, .titlebar-mark {
+  display: grid;
+  place-items: center;
+  background: linear-gradient(145deg, #7357e8, #3867d6);
+  color: white;
+  font-weight: 750;
+  box-shadow: 0 5px 14px rgba(56, 103, 214, .24);
+}
+.brand-mark { width: 42px; height: 42px; border-radius: 13px; font-size: 23px; }
+.brand-mark.small { width: 24px; height: 24px; border-radius: 8px; font-size: 13px; box-shadow: none; }
+
+/* ---- Shell ------------------------------------------------------------- */
+
+.app-shell { height: 100%; display: grid; grid-template-columns: 176px minmax(0, 1fr); }
+.sidebar {
+  min-height: 0;
+  padding: 14px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  border-right: 1px solid var(--colorNeutralStroke2);
+  background: color-mix(in srgb, var(--colorNeutralBackground1) 62%, transparent);
+}
+.sidebar-brand { display: flex; align-items: center; gap: 9px; padding: 4px 6px; font-size: 13px; font-weight: 650; }
+.sidebar-primary { display: grid; gap: 4px; }
+.sidebar-actions { margin-top: auto; display: grid; gap: 4px; }
+.nav-button { width: 100%; min-height: 38px; justify-content: flex-start !important; color: var(--colorNeutralForeground2) !important; }
+.nav-button.active { background: var(--colorBrandBackground2) !important; color: var(--colorBrandForeground1) !important; font-weight: 600; }
+
+/* The shell owns the viewport; each page scrolls its own overflow region.
+   `overflow: auto` here made the whole page scroll a few pixels even when it
+   fitted, because `min-height: 100%` plus padding exceeded the row height. */
+.app-content { min-width: 0; min-height: 0; overflow: hidden; }
+
+.workspace, .settings-view, .history-view {
+  height: 100%;
+  padding: 18px clamp(14px, 2.4vw, 34px) 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* The panes are the point of the page, so everything above them gives up room
+   first: the header and the style row are fixed-height and scroll away, while
+   the panes keep a small floor and stay on screen far longer. Only once even
+   that floor no longer fits does the workspace scroll, so no block can end up
+   both clipped and unreachable. */
+.workspace { overflow-y: auto; overflow-x: hidden; }
+
+.page-header h1, .main-header h1 { margin: 0; font-size: 21px; line-height: 1.25; letter-spacing: -.4px; }
+.page-header p, .main-header p { margin: 4px 0 0; color: var(--colorNeutralForeground3); font-size: 13px; }
+.page-header, .main-header, .style-block, .message-stack { flex: none; }
+.page-header, .main-header { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.header-tools { display: flex; gap: 12px; align-items: center; }
+.profile-control { display: grid; gap: 4px; }
+.profile-control > span { color: var(--colorNeutralForeground3); font-size: 11px; font-weight: 600; }
+.profile-dropdown { min-width: 200px; }
+.session-chip { min-width: 210px; padding: 8px 10px; display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center; border: 1px solid var(--colorNeutralStroke2); border-radius: 10px; background: var(--colorNeutralBackground1); }
+.session-chip > div { display: flex; gap: 7px; font-size: 12px; }
+.session-chip [role="progressbar"] { grid-column: 1; }
+.message-stack { display: grid; gap: 8px; }
+.message-stack:empty { display: none; }
+

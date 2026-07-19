@@ -1,15 +1,32 @@
 use serde::Serialize;
-use tauri::{AppHandle, Manager};
+use std::path::{Path, PathBuf};
+use tauri::AppHandle;
 use tauri_plugin_updater::UpdaterExt;
 
+/// Directory holding the running executable.
+///
+/// `PathResolver::executable_dir` is the XDG "user's executables" location and
+/// resolves to nothing on Windows, so it never found the NSIS marker and every
+/// build reported itself as portable and refused to self-update.
+fn install_dir() -> Option<PathBuf> {
+    std::env::current_exe()
+        .ok()?
+        .parent()
+        .map(Path::to_path_buf)
+}
+
+fn is_installed() -> bool {
+    install_dir().is_some_and(|dir| dir.join(".verva-installed").is_file())
+}
+
 #[tauri::command]
-pub fn install_mode(app: AppHandle) -> String {
-    let installed = app
-        .path()
-        .executable_dir()
-        .map(|path| path.join(".verva-installed").is_file())
-        .unwrap_or(false);
-    if installed { "installed" } else { "portable" }.into()
+pub fn install_mode() -> String {
+    let mode = if is_installed() {
+        "installed"
+    } else {
+        "portable"
+    };
+    mode.into()
 }
 
 #[derive(Serialize)]
@@ -48,7 +65,7 @@ pub async fn check_update(
     };
     let version = Some(update.version.clone());
     let body = update.body.clone();
-    let installed = install && install_mode(app.clone()) == "installed";
+    let installed = install && is_installed();
     if installed {
         update
             .download_and_install(|_, _| {}, || {})
@@ -61,4 +78,23 @@ pub async fn check_update(
         body,
         installed,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::install_dir;
+
+    /// Regression: the marker written by the NSIS hook sits beside the running
+    /// executable, so resolution must succeed on Windows. The previous
+    /// `executable_dir()` lookup returned `None` here and pinned every build to
+    /// portable mode.
+    #[test]
+    fn resolves_the_directory_holding_the_executable() {
+        let dir = install_dir().expect("executable directory must resolve");
+        assert!(dir.is_dir());
+        assert_eq!(
+            std::env::current_exe().unwrap().parent().unwrap(),
+            dir.as_path()
+        );
+    }
 }

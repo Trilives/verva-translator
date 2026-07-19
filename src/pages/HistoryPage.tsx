@@ -7,13 +7,14 @@ import { useI18n } from "../i18n/I18nContext";
 import { useActionFeedback } from "../hooks/useActionFeedback";
 
 function HistoryCard({ entry, onRestore }: { entry: HistoryEntry; onRestore: (entry: HistoryEntry) => void }) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const copied = useActionFeedback();
   const copy = () => { navigator.clipboard.writeText(entry.translatedText); copied.trigger(); };
 
   return <article className="history-item">
     <div className="history-meta">
-      <span>{entry.sourceLanguage} → {entry.targetLanguage}</span>
+      {/* Stored entries keep canonical identifiers; only the display localizes. */}
+      <span>{language(entry.sourceLanguage)} → {language(entry.targetLanguage)}</span>
       <time>{new Date(entry.createdAt).toLocaleString()}</time>
     </div>
     <p>{entry.sourceText}</p>

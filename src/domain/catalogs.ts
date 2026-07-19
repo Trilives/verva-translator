@@ -1,4 +1,4 @@
-import type { TranslationStyle } from "./types";
+import type { BuiltinStyle } from "./types";
 
 export const languages = [
   "Auto Detect", "English", "Chinese (Simplified)", "Chinese (Traditional)",
@@ -9,9 +9,16 @@ export const languages = [
 export const targetLanguages = languages.filter((language) => language !== "Auto Detect");
 export const sourceLanguages = languages.filter((language) => language !== "Custom");
 
-export const styles: TranslationStyle[] = [
-  "natural", "conversation", "business", "command", "custom"
+/** Shipped tones. Their labels come from the dictionary under the same key. */
+export const builtinStyles: BuiltinStyle[] = [
+  "natural", "conversation", "business", "command"
 ];
+
+/** Beyond this the row stops fitting on one line at the minimum width. */
+export const maxCustomStyles = 4;
+
+export const isBuiltinStyle = (style: string): style is BuiltinStyle =>
+  (builtinStyles as string[]).includes(style);
 
 export const defaultProfile = () => ({
   id: crypto.randomUUID(),

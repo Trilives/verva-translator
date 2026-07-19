@@ -1,28 +1,57 @@
 import {
-  Button, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, Textarea
+  Button, Dialog, DialogActions, DialogBody, DialogContent,
+  DialogSurface, DialogTitle, Field, Input, Textarea
 } from "@fluentui/react-components";
 import { useEffect, useState } from "react";
+import type { CustomStyle } from "../domain/types";
 import { useI18n } from "../i18n/I18nContext";
 
-interface Props { open: boolean; value: string; onSave: (v: string) => void; onCancel: () => void }
+interface Props {
+  /** The style being edited, or undefined while the dialog is closed. */
+  value?: CustomStyle;
+  /** True when the dialog was opened by Add rather than the pencil. */
+  isNew: boolean;
+  onSave: (value: CustomStyle) => void;
+  onDelete: (id: string) => void;
+  onCancel: () => void;
+}
 
-export function CustomStyleDialog({ open, value, onSave, onCancel }: Props) {
+export function CustomStyleDialog({ value, isNew, onSave, onDelete, onCancel }: Props) {
   const { t } = useI18n();
-  const [draft, setDraft] = useState(value);
-  useEffect(() => setDraft(value), [value, open]);
+  const [name, setName] = useState("");
+  const [requirements, setRequirements] = useState("");
 
-  return <Dialog open={open} onOpenChange={(_, data) => !data.open && onCancel()}>
+  useEffect(() => {
+    setName(value?.name ?? "");
+    setRequirements(value?.requirements ?? "");
+  }, [value]);
+
+  if (!value) return null;
+  const trimmed = name.trim();
+
+  return <Dialog open onOpenChange={(_, data) => !data.open && onCancel()}>
     <DialogSurface className="custom-style-surface">
       <DialogBody>
-        <DialogTitle>{t("customTitle")}</DialogTitle>
+        <DialogTitle>{isNew ? t("addStyle") : t("editStyle")}</DialogTitle>
         <DialogContent className="custom-style-content">
           <p className="custom-style-hint">{t("customHint")}</p>
-          <Textarea className="custom-style-textarea" resize="none" value={draft}
-            placeholder={t("customPlaceholder")} onChange={(_, d) => setDraft(d.value)} />
+          <Field label={t("styleName")} required>
+            <Input value={name} maxLength={24} placeholder={t("styleNamePlaceholder")}
+              onChange={(_, d) => setName(d.value)} />
+          </Field>
+          <Field label={t("styleRequirements")}>
+            <Textarea className="custom-style-textarea" resize="none" value={requirements}
+              placeholder={t("customPlaceholder")} onChange={(_, d) => setRequirements(d.value)} />
+          </Field>
         </DialogContent>
-        <DialogActions>
+        <DialogActions className="custom-style-actions">
+          {!isNew && (
+            <Button className="press delete-style" appearance="subtle"
+              onClick={() => onDelete(value.id)}>{t("deleteStyle")}</Button>
+          )}
           <Button className="press" appearance="secondary" onClick={onCancel}>{t("cancel")}</Button>
-          <Button className="press" appearance="primary" onClick={() => onSave(draft)}>{t("save")}</Button>
+          <Button className="press" appearance="primary" disabled={!trimmed}
+            onClick={() => onSave({ ...value, name: trimmed, requirements })}>{t("save")}</Button>
         </DialogActions>
       </DialogBody>
     </DialogSurface>

@@ -61,6 +61,26 @@ Launching the application twice restores and focuses the existing window through
 the single-instance plugin, which calls the same `tray::show_main` used by the
 tray icon.
 
+### Narrow and short windows
+
+The window minimum is 560x420. Shrinking must never leave a block clipped and
+unreachable, and the input and output panes are what the page is for, so they
+give up room last:
+
+- the stylesheet sets no `min-width` floor on `html`/`body`; the earlier 880px
+  floor clipped the right-hand side with no way to scroll to it;
+- the tone row never wraps, it scrolls sideways, so its height is constant;
+- below 640px of height the header subtitle is dropped, the title and padding
+  shrink, and the profile caption and session-chip timestamp are hidden, which
+  moves the panes up by roughly 140px;
+- the panes keep a small floor (216px, with 88px editors) rather than the
+  earlier 320px/200px, so they stay visible far longer;
+- only once that floor no longer fits does `.workspace` scroll.
+
+Elements hidden at small sizes are decorative or carry an `aria-label` already;
+the session chip is compacted rather than hidden because it is the only readout
+of context usage.
+
 ### Closing and the tray
 
 A tray icon is registered at startup. `WindowEvent::CloseRequested` on `main` is
@@ -81,28 +101,63 @@ appends to `<body>` for Dropdown, Tooltip, and Dialog. Any unscoped sizing rule
 for that class therefore applies to the portal as well, turning it into a
 full-viewport opaque sheet at `z-index: 1000000` that hides the whole window.
 Layout rules are scoped to `#root > .provider-root`, and `body > .fui-FluentProvider`
-explicitly has its layout neutralised. `src/styles/global.test.ts` guards both.
+explicitly has its layout neutralised. `src/styles/stylesheets.test.ts` guards
+both across every sheet, not just one.
+
+Fluent's `DialogBody` is a grid that hands `DialogActions` a single narrow
+column. A third action therefore makes all three buttons shrink to the same
+width and the longest label wraps onto a second line, which is what happened to
+Minimize to tray in the close prompt. The dialogs that carry three actions give
+the row the full body width and let each button keep its natural size.
 
 ## 4. Frontend structure
 
 ```text
 src/
-|- main.tsx            root render, window label, error boundary
-|- AppShell.tsx        theme + i18n providers, routing by window label
-|- pages/              MainPage (workspace), SettingsPage
-|- components/         workspace and settings UI, dialogs, title bar
-|- hooks/              useAppSettings, useTranslation, useShortcuts
+|- main.tsx            root render, stylesheet import order, error boundary
+|- AppShell.tsx        theme + i18n providers, page routing, workspace state
+|- pages/              MainPage (workspace), HistoryPage, SettingsPage
+|- components/         workspace and settings UI, dialogs
+|- hooks/              useAppSettings, useWorkspace, useTranslation, useShortcuts
 |- services/           Tauri invoke/event wrappers, store, updater
 |- domain/             catalogs and shared TypeScript types
 |- i18n/               typed English and Chinese dictionaries
-`- styles/             global.css
+`- styles/             base, workspace, dialogs, settings, history, responsive
 ```
 
 The workspace owns source text and editable result, major target languages plus
-Custom, the Natural/Conversation/Business/Command/Custom styles, the pencil
-action inside the Custom card (selecting the card does not open the editor),
-Translate-to-Stop state, coalesced streaming rendering, detected-source display
-beside Auto Detect, Swap, Copy, Clear, and configurable shortcuts.
+Custom, the tone row, streaming state, coalesced streaming rendering,
+detected-source display beside Auto Detect, Swap, Copy, Clear, and configurable
+shortcuts.
+
+Translate is a single-purpose button on the input pane and is disabled while a
+translation streams; the translate shortcut is guarded the same way, since a
+restart would discard the partial result. Stop is rendered on the result pane
+only while streaming.
+
+Source text and translation state live in `useWorkspace`, called by `AppShell`
+rather than by `MainPage`. Selecting History or Settings unmounts the workspace
+page, so state owned by the page was discarded: a half-typed input vanished on
+every navigation. The hook is memory-only and nothing it holds reaches
+`settings.json`.
+
+### Tone and style
+
+Four builtin tones (Natural, Daily conversation, Business, Command issuance) are
+followed by up to four user-defined tones and then an Add button, which is
+hidden once the fourth exists. A user-defined tone carries a name and free-text
+requirements and is edited through the pencil on its own bubble; selecting a
+bubble never opens the editor.
+
+Rust is unchanged by this: a builtin sends its key as `style` with an empty
+`customStyle`, and a user-defined tone sends its name as `style` and its
+requirements as `customStyle`.
+
+The earlier design had a single fixed Custom card backed by one free-text field.
+`migrateUiState` promotes that text to a named tone on first load and writes the
+result back immediately, because a promoted tone is minted with a fresh UUID and
+would otherwise be re-minted on every launch. A selection naming a tone that no
+longer exists falls back to the first builtin.
 
 Settings owns profiles, provider interface, base URL, model, secret entry,
 thinking mode, long conversation, context limit, updates, shortcuts, and UI
@@ -194,11 +249,15 @@ window/event, store, updater, and process permissions it uses. Shell and
 unrestricted filesystem plugins are not exposed. The content-security policy
 permits only the Tauri origin and local assets.
 
-Interface state (page, languages, style, custom style, settings tab) is stored
-under a separate `ui-state` key so the window looks the same on the next launch.
-It must never gain a field carrying source text or a translation result:
-`settings.json` is plain JSON, and translation content belongs in the vault.
-`src/services/uiState.test.ts` enforces this.
+Interface state (page, languages, selected tone, user-defined tones, settings
+tab) is stored under a separate `ui-state` key so the window looks the same on
+the next launch. It must never gain a field carrying source text or a
+translation result: `settings.json` is plain JSON, and translation content
+belongs in the vault. `src/services/uiState.test.ts` enforces this.
+
+User-defined tone names and requirements are user-authored instructions rather
+than translated content, so they belong in this file; the source text and the
+result do not, and stay in `useWorkspace` in memory.
 
 **Known gaps.** Streaming responses are not size-bounded and the streaming path
 has no explicit request timeout or redirect bound; only `test_profile` sets a
@@ -216,6 +275,18 @@ is stored separately.
 English is the primary source language; Simplified Chinese is the reference
 translation. Both dictionaries are typed from the English one, and
 `messages.test.ts` enforces key parity. UI language switches in Settings.
+
+Language names are a second pair of sets in `i18n/languages.ts`, keyed by the
+catalogue identifier, with `languages.test.ts` enforcing that both locales cover
+every catalogue entry.
+
+The catalogue entries in `domain/catalogs.ts` are **identifiers, not labels**.
+They are stored in `ui-state`, written to history, and interpolated into the
+prompt, so they stay English in every locale; only the label localizes.
+`LanguageSelect` renders `language(option)` but passes `optionValue` back
+unchanged, and `languageLabel` returns unknown values as-is because the detected
+language comes from the model and need not be in the catalogue. Translating an
+identifier would change what reaches the model and orphan existing history.
 
 Installer localization is handled by Tauri NSIS with English and Simplified
 Chinese and `displayLanguageSelector: true`.
@@ -239,7 +310,13 @@ destination selection, Start Menu shortcut, and uninstall registration.
 `install_mode` reports `installed` when a `.verva-installed` marker written by
 the NSIS hook sits beside the executable, and `portable` otherwise. Only
 installed copies download and apply an update; portable copies report an
-available version only. Stable and Beta use independent rolling signed manifests
+available version only.
+
+The directory is resolved with `std::env::current_exe()`. It must not use
+`PathResolver::executable_dir()`, which is the XDG "user's executables"
+location and resolves to nothing on Windows: it never found the marker, so
+every installed build reported itself portable and refused to self-update.
+`commands::updates::tests` covers the resolution. Stable and Beta use independent rolling signed manifests
 published to `updater-stable` / `updater-beta` tags.
 
 Updater artifacts require `TAURI_SIGNING_PRIVATE_KEY` and
@@ -268,10 +345,13 @@ The workflow does not currently run ESLint, `cargo fmt --check`, or
 
 Current automated coverage is deliberately small:
 
-- `src/domain/catalogs.test.ts`: language and style catalogue invariants
+- `src/domain/catalogs.test.ts`: language and tone catalogue invariants
 - `src/i18n/messages.test.ts`: English/Chinese key parity and fixed placeholders
-- `src/styles/global.test.ts`: Fluent portal layout regression guard
-- `src-tauri`: one unit test covering the endpoint HTTPS/loopback policy
+- `src/styles/stylesheets.test.ts`: Fluent portal layout regression guard,
+  plus the stylesheet composition rules in §4
+- `src/services/uiState.test.ts`: persisted shape and the tone migration
+- `src-tauri`: endpoint HTTPS/loopback policy, secret redaction, and the
+  install-directory resolution behind `install_mode`
 
 **Not yet covered**, though described as goals: React behaviour tests, streaming
 coalescing, session threshold, provider payload and SSE parsing tests, command

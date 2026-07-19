@@ -1,0 +1,160 @@
+/* ---- Surfaces ---------------------------------------------------------- */
+
+.style-block, .pane, .settings-card {
+  border: 1px solid var(--colorNeutralStroke2);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--colorNeutralBackground1) 88%, transparent);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .05);
+}
+
+.style-block { padding: 12px 16px; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; align-items: center; }
+.section-label { color: var(--colorNeutralForeground3); font-size: 11px; font-weight: 650; letter-spacing: .02em; }
+
+/* Bubbles separated by hairline rules. Nothing here may change the box model
+   on hover or selection, or the labels shift under the pointer: weight is held
+   constant via a bold ::after ghost, and colour does the state work. */
+/* One line, always. Wrapping to a second row made the block jump in height as
+   soon as the window narrowed, so the row scrolls sideways instead. */
+.style-bubbles {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 2px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.style-bubble, .add-style, .style-divider { flex: none; }
+.style-divider { width: 1px; height: 18px; margin: 0 4px; background: var(--colorNeutralStroke2); }
+
+.style-bubble {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 4px 2px 2px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  transition: background-color 130ms ease, border-color 130ms ease, color 130ms ease;
+}
+.style-bubble:hover { background: var(--colorNeutralBackground1Hover); border-color: var(--colorNeutralStroke2); }
+.style-bubble.selected {
+  background: var(--colorBrandBackground2);
+  border-color: var(--colorBrandStroke2);
+  box-shadow: 0 1px 4px rgba(56, 103, 214, .16);
+}
+
+.style-bubble-label {
+  padding: 5px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--colorNeutralForeground2);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: color 130ms ease;
+}
+.style-bubble.selected .style-bubble-label { color: var(--colorBrandForeground1); font-weight: 600; }
+
+/* Reserve the bold width up front so switching selection never reflows. */
+.style-bubble-label::after {
+  content: attr(data-label);
+  display: block;
+  height: 0;
+  overflow: hidden;
+  font-weight: 600;
+  visibility: hidden;
+}
+
+.edit-style {
+  display: inline-flex;
+  padding: 4px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--colorNeutralForeground3);
+  cursor: pointer;
+  transition: background-color 130ms ease, color 130ms ease;
+}
+.edit-style:hover { background: var(--colorNeutralBackground3Hover); color: var(--colorBrandForeground1); }
+.style-bubble.selected .edit-style { color: var(--colorBrandForeground1); }
+
+/* Always the last item in the row, and never a selectable tone. */
+.add-style {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 6px;
+  padding: 5px 12px 5px 9px;
+  border: 1px dashed var(--colorNeutralStroke2);
+  border-radius: 999px;
+  background: none;
+  color: var(--colorNeutralForeground3);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 130ms ease, border-color 130ms ease, color 130ms ease;
+}
+.add-style:hover {
+  border-color: var(--colorBrandStroke2);
+  background: var(--colorNeutralBackground1Hover);
+  color: var(--colorBrandForeground1);
+}
+
+/* ---- Translation panes ------------------------------------------------- */
+
+/* Language selector, editor and actions share one surface per direction. */
+.translate-panes { flex: 1; min-height: 216px; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 10px; align-items: stretch; }
+.pane { min-width: 0; padding: 12px 14px 12px; display: flex; flex-direction: column; gap: 10px; }
+.output-pane { border-color: color-mix(in srgb, var(--colorBrandStroke2) 55%, var(--colorNeutralStroke2)); }
+.pane-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.language-select { display: grid; gap: 3px; }
+.language-dropdown { min-width: 190px; }
+.character-count { display: flex; align-items: center; gap: 6px; color: var(--colorNeutralForeground3); font-size: 11px; white-space: nowrap; }
+
+/* Sits inline with the pane's label, not between the two panes. */
+.section-label { display: inline-flex; align-items: center; gap: 7px; }
+.detected-pill { padding: 1px 7px; font-size: 10px; font-weight: 600; border-radius: 999px; background: var(--colorBrandBackground2); color: var(--colorBrandForeground2); }
+.pane-textarea { flex: 1; min-height: 88px; }
+.pane-textarea > textarea { min-height: 100%; width: 100%; border: 0; padding: 3px 1px; background: transparent; font: 15px/1.65 "Segoe UI Variable", sans-serif; }
+.pane-textarea > textarea:focus::placeholder { color: transparent; }
+/* `min-height` holds the row steady so the pane does not resize when Stop
+   appears and disappears mid-translation. */
+.pane-actions { min-height: 32px; display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+
+/* The leading action sits at the far left. Using `margin-right: auto` rather
+   than `space-between` keeps the trailing action pinned right even when the
+   leading one is absent, which is the output pane's resting state.
+   Scoped through the parent so it outranks Fluent's own `margin` reset, which
+   is injected at runtime and would otherwise win on equal specificity. */
+.pane-actions > .pane-action-start { margin-right: auto; }
+.stop-button { color: var(--colorPaletteRedForeground1) !important; border-color: var(--colorPaletteRedBorder1) !important; }
+.native-input { width: 100%; height: 32px; padding: 0 10px; color: inherit; background: var(--colorNeutralBackground1); border: 1px solid var(--colorNeutralStroke1); border-radius: 4px; }
+.swap-button { align-self: center; color: var(--colorBrandForeground1) !important; background: var(--colorBrandBackground2) !important; }
+
+/* ---- Button feedback --------------------------------------------------- */
+
+.press { transition: transform 90ms ease, box-shadow 90ms ease; }
+.press:active:not(:disabled) { transform: scale(.94); }
+.press:disabled { transform: none; }
+
+@keyframes action-pulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 var(--colorBrandBackground2); }
+  35% { transform: scale(1.06); box-shadow: 0 0 0 7px transparent; }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 transparent; }
+}
+.copy-button.fired, .save-button.fired {
+  animation: action-pulse 520ms ease-out;
+  color: var(--colorPaletteGreenForeground1) !important;
+  border-color: var(--colorPaletteGreenBorder1) !important;
+}
+.copy-button.fired svg, .save-button.fired svg { color: var(--colorPaletteGreenForeground1); }
+
+@media (prefers-reduced-motion: reduce) {
+  .press, .copy-button.fired, .save-button.fired { transition: none; animation: none; }
+  .press:active:not(:disabled) { transform: none; }
+}
+

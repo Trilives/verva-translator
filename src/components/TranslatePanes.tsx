@@ -30,8 +30,11 @@ export function TranslatePanes(props: Props) {
       <Textarea className="pane-textarea" resize="none" value={props.input}
         placeholder={t("sourcePlaceholder")} onChange={(_, d) => props.onInput(d.value)} />
       <footer className="pane-actions">
-        <Button className="press" appearance="outline" icon={<Delete20Regular />}
+        <Button className="press pane-action-start" appearance="outline" icon={<Delete20Regular />}
           onClick={props.onClear} disabled={!props.input}>{t("clear")}</Button>
+        {/* Translate no longer toggles: Stop lives on the pane it interrupts. */}
+        <Button className="press translate-button" appearance="primary" icon={<Send20Regular />}
+          onClick={props.onTranslate} disabled={props.busy || !props.input.trim()}>{t("translate")}</Button>
       </footer>
     </div>
 
@@ -53,13 +56,14 @@ export function TranslatePanes(props: Props) {
       <Textarea className="pane-textarea" resize="none" value={props.output}
         placeholder={t("resultPlaceholder")} onChange={(_, d) => props.onOutput(d.value)} />
       <footer className="pane-actions">
+        {/* Only present while streaming; Copy stays put whether or not it shows. */}
+        {props.busy && (
+          <Button className="press pane-action-start stop-button" appearance="outline"
+            icon={<Stop20Regular />} onClick={props.onStop}>{t("stop")}</Button>
+        )}
         <Button className={`press copy-button ${copied.fired ? "fired" : ""}`} appearance="outline"
           icon={copied.fired ? <Checkmark20Filled /> : <Copy20Regular />}
           onClick={copy} disabled={!props.output}>{copied.fired ? t("copied") : t("copy")}</Button>
-        <Button className="press translate-button" appearance="primary"
-          icon={props.busy ? <Stop20Regular /> : <Send20Regular />}
-          onClick={props.busy ? props.onStop : props.onTranslate}
-          disabled={!props.busy && !props.input.trim()}>{props.busy ? t("stop") : t("translate")}</Button>
       </footer>
     </div>
   </section>;

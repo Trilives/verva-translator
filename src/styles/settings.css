@@ -1,0 +1,84 @@
+/* ---- Shortcuts --------------------------------------------------------- */
+
+.shortcut-row { display: flex; align-items: center; gap: 6px; }
+.shortcut-capture {
+  flex: 1;
+  min-height: 32px;
+  padding: 4px 10px;
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--colorNeutralStroke1);
+  border-radius: 4px;
+  background: var(--colorNeutralBackground1);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 130ms ease, background-color 130ms ease;
+}
+.shortcut-capture:hover { border-color: var(--colorNeutralStroke1Hover); }
+.shortcut-capture.recording {
+  border-color: var(--colorBrandStroke1);
+  background: var(--colorBrandBackground2);
+  color: var(--colorBrandForeground1);
+}
+.shortcut-keys { display: inline-flex; align-items: center; gap: 4px; }
+.shortcut-keys kbd {
+  padding: 1px 7px;
+  border: 1px solid var(--colorNeutralStroke2);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: var(--colorNeutralBackground3);
+  font: 600 11px/1.7 "Segoe UI Variable", sans-serif;
+}
+.shortcut-prompt { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
+
+/* ---- Settings ---------------------------------------------------------- */
+
+.settings-tabs { flex: none; border-bottom: 1px solid var(--colorNeutralStroke2); }
+/* Only the settings body scrolls, so the tabs stay put. */
+.settings-content { flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px; }
+.settings-card { padding: 18px 20px; display: grid; gap: 14px; }
+.connection-test { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.connection-result { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; word-break: break-word; }
+.connection-result.ok { color: var(--colorPaletteGreenForeground1); }
+.connection-result.failed { color: var(--colorPaletteRedForeground1); }
+.settings-card h2 { margin: 0; font-size: 14px; font-weight: 650; letter-spacing: -.1px; }
+.settings-card-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.settings-status { color: var(--colorNeutralForeground3); font-size: 13px; }
+.profile-toolbar { display: flex; gap: 10px; }
+.settings-stack { display: grid; gap: 14px; align-content: start; }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+
+/* Configuration list: collapsed rows that expand into the full editor. */
+.profile-list { display: grid; gap: 8px; }
+.profile-row {
+  border: 1px solid var(--colorNeutralStroke2);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--colorNeutralBackground1) 88%, transparent);
+  overflow: hidden;
+}
+.profile-row.expanded { border-color: var(--colorBrandStroke2); box-shadow: 0 2px 12px rgba(0, 0, 0, .06); }
+.profile-summary {
+  width: 100%;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.profile-summary:hover { background: var(--colorNeutralBackground1Hover); }
+.profile-name { font-weight: 600; }
+.profile-meta { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--colorNeutralForeground3); font-size: 12px; }
+.profile-body { padding: 4px 16px 16px; border-top: 1px solid var(--colorNeutralStroke3); }
+.profile-editor { padding-top: 14px; display: grid; gap: 16px; }
+.profile-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+
+.switch-list { display: grid; gap: 14px; padding-top: 6px; border-top: 1px solid var(--colorNeutralStroke3); }
+.switch-list p, .settings-note { margin: 4px 0 0 30px; color: var(--colorNeutralForeground3); font-size: 13px; }
+.settings-note { margin-left: 0; }
+

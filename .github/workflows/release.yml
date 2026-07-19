@@ -95,13 +95,23 @@ jobs:
           $setup = "Verva-Translate-$env:VERSION-windows-x64-setup.exe"
           Copy-Item $setupSource.FullName "release/$setup"
           Copy-Item "$($setupSource.FullName).sig" "release/$setup.sig"
+          # Verification artifacts are bundled into one archive so the release
+          # page lists the two installers plus a single checksums zip, rather
+          # than five loose files. The updater does not read these: the manifest
+          # step below inlines the signature from release/verify/ before the zip
+          # is the only copy left on the page.
+          New-Item -ItemType Directory -Force release/verify | Out-Null
           foreach ($name in @($portable, $setup)) {
             $hash = (Get-FileHash "release/$name" -Algorithm SHA256).Hash.ToLowerInvariant()
-            "$hash  $name" | Set-Content "release/$name.sha256" -Encoding ascii
+            "$hash  $name" | Set-Content "release/verify/$name.sha256" -Encoding ascii
           }
+          Move-Item "release/$setup.sig" "release/verify/$setup.sig"
+          $checksums = "Verva-Translate-$env:VERSION-checksums.zip"
+          Compress-Archive -Path release/verify/* -DestinationPath "release/$checksums"
           "PORTABLE=$portable" >> $env:GITHUB_ENV
           "SETUP=$setup" >> $env:GITHUB_ENV
-          "UPDATER=$setup" >> $env:GITHUB_ENV
+          "SIGNATURE=release/verify/$setup.sig" >> $env:GITHUB_ENV
+          "CHECKSUMS=$checksums" >> $env:GITHUB_ENV
 
       - uses: actions/upload-artifact@v4
         with:
@@ -118,13 +128,18 @@ jobs:
             if ('${{ inputs.replace_existing }}' -ne 'true') { throw "Release $env:VERSION already exists." }
             gh release delete $env:VERSION --repo $env:GITHUB_REPOSITORY --cleanup-tag --yes
           }
-          $files = Get-ChildItem release -File | ForEach-Object FullName
+          # Exactly three uploads: the two installers and the checksums zip.
+          # `-File` at the top level already excludes release/verify/, and
+          # notes.md is written after this line, so neither can leak onto the page.
+          $files = @("release/$env:SETUP", "release/$env:PORTABLE", "release/$env:CHECKSUMS") | ForEach-Object { (Resolve-Path $_).Path }
           $args = @('release','create',$env:VERSION) + $files + @('--repo',$env:GITHUB_REPOSITORY,'--target','${{ github.sha }}','--title',"Verva Translate $env:VERSION")
           if ([string]::IsNullOrWhiteSpace($env:RELEASE_NOTES)) { $args += '--generate-notes' } else { $env:RELEASE_NOTES | Set-Content release/notes.md -Encoding utf8; $args += @('--notes-file','release/notes.md') }
           if ($env:CHANNEL -eq 'beta') { $args += '--prerelease' } else { $args += '--latest' }
           & gh @args
-          $signature = Get-Content "release/$env:UPDATER.sig" -Raw
-          $encoded = [Uri]::EscapeDataString($env:UPDATER)
+          # Read from the staged .sig, not the release page: the signature is
+          # inlined here, which is why zipping it away does not affect updating.
+          $signature = Get-Content $env:SIGNATURE -Raw
+          $encoded = [Uri]::EscapeDataString($env:SETUP)
           $manifest = @{
             version = $env:VERSION
             notes = $env:RELEASE_NOTES

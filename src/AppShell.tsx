@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { I18nProvider } from "./i18n/I18nContext";
 import { useAppSettings } from "./hooks/useAppSettings";
 import { useUiState } from "./hooks/useUiState";
+import { useWorkspace } from "./hooks/useWorkspace";
 import { MainPage } from "./pages/MainPage";
 import { HistoryPage } from "./pages/HistoryPage";
 import { SettingsPage } from "./pages/SettingsPage";
@@ -14,6 +15,9 @@ import type { CloseBehavior, HistoryEntry } from "./domain/types";
 export function AppShell() {
   const state = useAppSettings();
   const ui = useUiState();
+  // Held here, not in MainPage: navigating away unmounts the page, and the
+  // source text and streaming result must survive that.
+  const workspace = useWorkspace();
   const [restored, setRestored] = useState<HistoryEntry>();
   const [closePrompt, setClosePrompt] = useState(false);
 
@@ -46,7 +50,8 @@ export function AppShell() {
           <Sidebar page={ui.state.page} onPage={(page) => ui.patch({ page })} />
           <main className="app-content">
             {ui.state.page === "workspace" && <MainPage settings={state.settings} update={state.update}
-              ui={ui.state} patchUi={ui.patch} restored={restored} onRestored={() => setRestored(undefined)} />}
+              ui={ui.state} patchUi={ui.patch} workspace={workspace}
+              restored={restored} onRestored={() => setRestored(undefined)} />}
             {ui.state.page === "history" && <HistoryPage onRestore={restore} />}
             {ui.state.page === "settings" && <SettingsPage settings={state.settings} update={state.update}
               section={ui.state.settingsSection} onSection={(settingsSection) => ui.patch({ settingsSection })} />}

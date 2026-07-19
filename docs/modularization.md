@@ -21,6 +21,9 @@ splitting the file in the same change.
 limit; the next change to it should split streaming orchestration out of the
 command module.
 
+The stylesheet was split when it passed the 240-line limit; see §5. Every sheet
+is now well inside it.
+
 Line count alone is not the goal. Several components pack multiple JSX elements
 onto single 300+ character lines, which satisfies the limit while being hard to
 review. Prefer readable wrapping over dense one-liners; the limits assume
@@ -30,15 +33,15 @@ normally formatted code.
 
 ```text
 src/
-|- main.tsx            root render, window label, error boundary
-|- AppShell.tsx        theme + i18n providers, routing by window label
-|- pages/              one component per window
-|- components/         workspace and settings UI, dialogs, title bar
-|- hooks/              orchestration: settings, translation, shortcuts
+|- main.tsx            root render, stylesheet import order, error boundary
+|- AppShell.tsx        theme + i18n providers, page routing, workspace state
+|- pages/              one component per page
+|- components/         workspace and settings UI, dialogs
+|- hooks/              orchestration: settings, workspace, translation, shortcuts
 |- services/           Tauri invoke/event wrappers, store, updater
 |- domain/             catalogs and shared TypeScript types
 |- i18n/               typed English and Chinese dictionaries
-`- styles/             global.css
+`- styles/             base, workspace, dialogs, settings, history, responsive
 
 src-tauri/src/
 |- lib.rs              plugin, state, and command registration only
@@ -57,8 +60,10 @@ src-tauri/src/
 - No component constructs provider JSON or handles an API key.
 - Fluent UI v9 components are preferred over hand-built controls.
 - Dialog state belongs to the feature that owns the dialog.
-- A list item selection and an edit action are separate interactions. The Custom
-  card may be selected without opening its editor.
+- A list item selection and an edit action are separate interactions. A tone
+  bubble may be selected without opening its editor.
+- State that must outlive a page lives above the router in `AppShell`, not in
+  the page. Pages unmount on navigation, so page-owned state is discarded.
 - Streaming chunks are coalesced outside the render function.
 - Every icon-only button has an accessible label and tooltip.
 - Never put an app layout class on `FluentProvider`. Fluent copies that
@@ -67,11 +72,22 @@ src-tauri/src/
 
 ## 5. Styling rules
 
-Styling is a single global stylesheet, `src/styles/global.css`, using Fluent
-design tokens (`var(--colorNeutralBackground1)` and friends). Griffel
-`makeStyles` is **not** used. Do not introduce a second styling framework; if
-component-scoped styles become necessary, migrate to Griffel deliberately rather
-than mixing approaches.
+Styling is a set of plain stylesheets under `src/styles/`, using Fluent design
+tokens (`var(--colorNeutralBackground1)` and friends). Griffel `makeStyles` is
+**not** used. Do not introduce a second styling framework; if component-scoped
+styles become necessary, migrate to Griffel deliberately rather than mixing
+approaches.
+
+The sheets are `base`, `workspace`, `dialogs`, `settings`, `history`, and
+`responsive`. They are imported individually from `main.tsx`, and **cascade
+order is import order**, so `base` stays first and `responsive` stays last —
+its media queries share specificity with the rules they override.
+
+Do **not** compose them with CSS `@import` from a manifest sheet. Vite's dev
+server does not inline CSS `@import`: the manifest serves as an empty stylesheet
+and the entire app renders unstyled under `npm run dev`, while the production
+build looks fine. `src/styles/stylesheets.test.ts` enforces both the absence of
+`@import` and the import order.
 
 Fluent tokens only resolve inside `FluentProvider`. Rules on `html`, `body`, or
 the splash screen must use literal colours, with a
@@ -85,6 +101,11 @@ page that can overflow gives its body `flex: 1; min-height: 0; overflow-y: auto`
 Do not put `overflow: auto` back on the shell: combined with `min-height: 100%`
 plus padding it made every page scroll a few pixels when it already fitted.
 
+No content may be both clipped and unreachable. A page that can outgrow the
+window scrolls; it does not rely on a `min-width` floor on `html`/`body`, which
+clips instead of scrolling. When space is short the translation panes are the
+last thing to give it up.
+
 ## 6. TypeScript rules
 
 - `strict` remains enabled.
@@ -94,6 +115,9 @@ plus padding it made every page scroll a few pixels when it already fitted.
 - Pure logic is tested without rendering.
 - Localization keys are inferred from the English dictionary; Chinese must
   satisfy the same key type.
+- Catalogue values are identifiers, not labels. Anything persisted, sent to a
+  provider, or written to history stays canonical English; localize at render
+  time only.
 
 ## 7. Rust rules
 
@@ -128,12 +152,22 @@ Treat these as required for any change that touches provider error handling.
 ## 9. UI behavior invariants
 
 - One window with native decorations. Settings and History are pages, not windows.
-- Custom style, Update, and the close prompt are the only dialogs.
+- The tone editor, Update, and the close prompt are the only dialogs.
 - Dialog identity is shown by the upper-left title; dismissal uses bottom actions.
+- A dialog with three actions must keep every label on one line; see §5 of
+  `architecture.md` for why Fluent squeezes them by default.
 - Tone and style is a block above the panes; each language selector sits on the
   pane it applies to.
-- Clear input is at the bottom right of the input pane; Copy result then
-  Translate are at the bottom right of the result pane.
+- The tone row is four builtins, then up to four user-defined tones, then Add,
+  which disappears at the cap. The row scrolls sideways and never wraps.
+- Switching pages preserves the source text and the streaming result.
+- Clear input is at the bottom left of the input pane and Translate at its
+  bottom right. Translate does not toggle.
+- Copy result is the only permanent action on the result pane and stays at its
+  bottom right. Stop appears at the bottom left of that pane only while
+  streaming, so it sits beside the output it interrupts.
+- The action rows reserve their height, so a pane must not resize when Stop
+  appears or disappears.
 - Style labels must not shift on hover or selection; the bold ghost in
   `.style-bubble-label::after` reserves the selected width.
 - One Save per configuration. Saving collapses the row.

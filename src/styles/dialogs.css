@@ -1,0 +1,40 @@
+/* ---- Custom style dialog ----------------------------------------------- */
+
+/* The textarea used to be laid out by `rows` inside a shrink-to-fit surface,
+   which squashed it out of shape. Pin the surface width and let the textarea
+   fill it instead. */
+.custom-style-surface { width: min(560px, calc(100vw - 48px)) !important; max-width: 560px !important; }
+.custom-style-content { display: grid; gap: 10px; }
+.custom-style-hint { margin: 0; color: var(--colorNeutralForeground3); font-size: 13px; }
+.custom-style-textarea { width: 100%; }
+.custom-style-textarea > textarea {
+  width: 100%;
+  min-height: 132px;
+  max-height: 38vh;
+  font: 14px/1.6 "Segoe UI Variable", sans-serif;
+}
+
+/* Delete is destructive, so it sits away from Save at the opposite end. */
+.custom-style-actions { display: flex; align-items: center; gap: 8px; }
+.delete-style { margin-right: auto; color: var(--colorPaletteRedForeground1) !important; }
+
+
+.close-prompt-surface { width: min(560px, calc(100vw - 48px)) !important; max-width: 560px !important; }
+
+/* Fluent's DialogBody grid hands DialogActions a single narrow column, so a
+   third action makes all three buttons shrink to the same width and the
+   longest label ("Minimize to tray") wraps onto a second line. Give the row
+   the full body width and let each button keep its natural size. */
+.close-prompt-surface .fui-DialogActions,
+.custom-style-surface .fui-DialogActions {
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.close-prompt-surface .fui-DialogActions > button,
+.custom-style-surface .fui-DialogActions > button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.close-prompt-content { display: grid; gap: 12px; }
+.close-prompt-content p { margin: 0; }
