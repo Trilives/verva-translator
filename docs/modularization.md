@@ -47,6 +47,7 @@ src-tauri/src/
 |- state.rs            vault, cancellations, sessions, HTTP client
 |- security.rs         DPAPI bootstrap
 |- history.rs          bounded history
+|- tray.rs             notification-area icon, menu, show_main
 `- models.rs           shared serde types
 ```
 
@@ -76,9 +77,13 @@ Fluent tokens only resolve inside `FluentProvider`. Rules on `html`, `body`, or
 the splash screen must use literal colours, with a
 `prefers-color-scheme: dark` fallback.
 
-Window-specific responsive rules are scoped with `body[data-window="main"]`, set
-in `main.tsx`. The settings window is narrower than the workspace breakpoints and
-must not inherit them.
+The window is Mica-backed, so `body` must stay transparent and surfaces use
+`color-mix(... transparent)` rather than opaque fills.
+
+Each page owns its own scroll region. `.app-content` is `overflow: hidden`; a
+page that can overflow gives its body `flex: 1; min-height: 0; overflow-y: auto`.
+Do not put `overflow: auto` back on the shell: combined with `min-height: 100%`
+plus padding it made every page scroll a few pixels when it already fitted.
 
 ## 6. TypeScript rules
 
@@ -122,10 +127,18 @@ Treat these as required for any change that touches provider error handling.
 
 ## 9. UI behavior invariants
 
-- Settings is a single separate app window with its own drawn title bar.
-- History and Custom Style are in-app Fluent dialogs without native controls.
+- One window with native decorations. Settings and History are pages, not windows.
+- Custom style, Update, and the close prompt are the only dialogs.
 - Dialog identity is shown by the upper-left title; dismissal uses bottom actions.
-- Clear is leftmost and visually bordered; Copy is beside Translate/Stop.
+- Tone and style is a block above the panes; each language selector sits on the
+  pane it applies to.
+- Clear input is at the bottom right of the input pane; Copy result then
+  Translate are at the bottom right of the result pane.
+- Style labels must not shift on hover or selection; the bold ghost in
+  `.style-bubble-label::after` reserves the selected width.
+- One Save per configuration. Saving collapses the row.
+- Shortcuts are recorded, never typed, and always require a modifier unless the
+  trigger is a function key.
 - Results become editable after the first chunk.
 - Auto Detect remains selected after detection.
 - The detected language is shown beside Auto Detect and stored only for the

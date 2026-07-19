@@ -7,7 +7,7 @@ const key = "app-settings";
 export const defaultSettings = (): AppSettings => {
   const profile = defaultProfile();
   return {
-    locale: "en", theme: "system", updateMode: "manual", updateChannel: "stable",
+    locale: "en", theme: "system", closeBehavior: "ask", updateMode: "manual", updateChannel: "stable",
     activeProfileId: profile.id, profiles: [profile],
     shortcuts: { translate: "Ctrl+Enter", clear: "Ctrl+L", copy: "Ctrl+Shift+C" }
   };
@@ -19,7 +19,9 @@ export async function loadSettings(): Promise<AppSettings> {
     return raw ? { ...defaultSettings(), ...JSON.parse(raw) } : defaultSettings();
   }
   const store = await load("settings.json", { autoSave: 150, defaults: {} });
-  return (await store.get<AppSettings>(key)) ?? defaultSettings();
+  // Spread over the defaults so settings written by an older version gain any
+  // newly added field instead of arriving undefined.
+  return { ...defaultSettings(), ...(await store.get<Partial<AppSettings>>(key)) };
 }
 
 export async function saveSettings(settings: AppSettings) {

@@ -1,8 +1,11 @@
-import { Button, Field, Input, Select, Switch } from "@fluentui/react-components";
-import { Checkmark20Filled, Delete20Regular, Save20Regular } from "@fluentui/react-icons";
+import { Button, Field, Input, Select, Spinner, Switch } from "@fluentui/react-components";
+import {
+  Checkmark20Filled, CheckmarkCircle20Filled, Delete20Regular,
+  DismissCircle20Filled, PlugConnected20Regular, Save20Regular
+} from "@fluentui/react-icons";
 import { useEffect, useState } from "react";
 import type { ProviderProfile } from "../domain/types";
-import { saveApiKey } from "../services/backend";
+import { saveApiKey, testProfile, type ConnectionReport } from "../services/backend";
 import { useI18n } from "../i18n/I18nContext";
 import { useActionFeedback } from "../hooks/useActionFeedback";
 
@@ -25,8 +28,10 @@ export function ProfileEditor({ profile, canDelete, onSave, onDelete }: Props) {
   const { t } = useI18n();
   const [draft, setDraft] = useState(profile);
   const [key, setKey] = useState("");
+  const [testing, setTesting] = useState(false);
+  const [report, setReport] = useState<ConnectionReport>();
   const saved = useActionFeedback();
-  useEffect(() => { setDraft(profile); setKey(""); }, [profile]);
+  useEffect(() => { setDraft(profile); setKey(""); setReport(undefined); }, [profile]);
 
   const patch = <K extends keyof ProviderProfile>(field: K, value: ProviderProfile[K]) =>
     setDraft((current) => ({ ...current, [field]: value }));
@@ -45,6 +50,21 @@ export function ProfileEditor({ profile, canDelete, onSave, onDelete }: Props) {
     }
     saved.trigger();
     await onSave(next);
+  };
+
+  // Tests the saved key against the draft endpoint, so an unsaved base URL or
+  // model can be checked before committing it.
+  const test = async () => {
+    setTesting(true);
+    setReport(undefined);
+    try {
+      if (key.trim()) await saveApiKey(profile.id, key.trim());
+      setReport(await testProfile(draft));
+    } catch (error) {
+      setReport({ ok: false, message: String(error) });
+    } finally {
+      setTesting(false);
+    }
   };
 
   return <div className="profile-editor">
@@ -81,6 +101,17 @@ export function ProfileEditor({ profile, canDelete, onSave, onDelete }: Props) {
           onChange={(_, d) => patch("longConversation", d.checked)} />
         <p>{t("longConversationHint")}</p>
       </div>
+    </div>
+
+    <div className="connection-test">
+      <Button className="press" appearance="outline" icon={testing ? <Spinner size="tiny" /> : <PlugConnected20Regular />}
+        disabled={testing || urlBroken} onClick={test}>
+        {testing ? t("testing") : t("testConnection")}
+      </Button>
+      {report && <span className={`connection-result ${report.ok ? "ok" : "failed"}`}>
+        {report.ok ? <CheckmarkCircle20Filled /> : <DismissCircle20Filled />}
+        {report.ok ? `${t("connectionOk")} (${report.latencyMs} ms)` : report.message}
+      </span>}
     </div>
 
     <div className="profile-footer">

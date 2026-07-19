@@ -48,22 +48,23 @@ body > .fui-FluentProvider { min-width: 0; min-height: 0; height: auto; backgrou
 .nav-button { width: 100%; min-height: 38px; justify-content: flex-start !important; color: var(--colorNeutralForeground2) !important; }
 .nav-button.active { background: var(--colorBrandBackground2) !important; color: var(--colorBrandForeground1) !important; font-weight: 600; }
 
-.app-content { min-width: 0; min-height: 0; overflow: auto; }
-.workspace, .settings-view {
-  min-height: 100%;
+/* The shell owns the viewport; each page scrolls its own overflow region.
+   `overflow: auto` here made the whole page scroll a few pixels even when it
+   fitted, because `min-height: 100%` plus padding exceeded the row height. */
+.app-content { min-width: 0; min-height: 0; overflow: hidden; }
+
+.workspace, .settings-view, .history-view {
+  height: 100%;
   padding: 18px clamp(18px, 2.4vw, 34px) 22px;
-  display: grid;
-  align-content: start;
+  display: flex;
+  flex-direction: column;
   gap: 14px;
 }
 
-/* Flex, not grid rows: the dialogs render an inline placeholder that would
-   otherwise claim the `1fr` row and strand the panes in an auto-sized one. */
-.workspace { height: 100%; display: flex; flex-direction: column; }
-
 .page-header h1, .main-header h1 { margin: 0; font-size: 21px; line-height: 1.25; letter-spacing: -.4px; }
 .page-header p, .main-header p { margin: 4px 0 0; color: var(--colorNeutralForeground3); font-size: 13px; }
-.main-header { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.page-header, .main-header, .style-block, .message-stack { flex: none; }
+.page-header, .main-header { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
 .header-tools { display: flex; gap: 12px; align-items: center; }
 .profile-control { display: grid; gap: 4px; }
 .profile-control > span { color: var(--colorNeutralForeground3); font-size: 11px; font-weight: 600; }
@@ -241,9 +242,8 @@ body > .fui-FluentProvider { min-width: 0; min-height: 0; height: auto; backgrou
 
 /* ---- History ----------------------------------------------------------- */
 
-.history-view { grid-template-rows: auto minmax(0, 1fr); }
 .history-count { color: var(--colorNeutralForeground3); font-size: 13px; }
-.history-list { min-height: 0; display: grid; gap: 10px; align-content: start; }
+.history-list { flex: 1; min-height: 0; overflow-y: auto; display: grid; gap: 10px; align-content: start; padding-right: 4px; }
 .empty-note { margin: 0; color: var(--colorNeutralForeground3); }
 .history-item {
   padding: 14px;
@@ -258,10 +258,17 @@ body > .fui-FluentProvider { min-width: 0; min-height: 0; height: auto; backgrou
 
 /* ---- Settings ---------------------------------------------------------- */
 
-.settings-view { grid-template-rows: auto auto minmax(0, 1fr); }
-.settings-tabs { border-bottom: 1px solid var(--colorNeutralStroke2); }
-.settings-content { min-height: 0; }
+.settings-tabs { flex: none; border-bottom: 1px solid var(--colorNeutralStroke2); }
+/* Only the settings body scrolls, so the tabs stay put. */
+.settings-content { flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px; }
 .settings-card { padding: 18px 20px; display: grid; gap: 14px; }
+.connection-test { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.connection-result { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; word-break: break-word; }
+.connection-result.ok { color: var(--colorPaletteGreenForeground1); }
+.connection-result.failed { color: var(--colorPaletteRedForeground1); }
+.close-prompt-surface { width: min(480px, calc(100vw - 48px)) !important; max-width: 480px !important; }
+.close-prompt-content { display: grid; gap: 12px; }
+.close-prompt-content p { margin: 0; }
 .settings-card h2 { margin: 0; font-size: 14px; font-weight: 650; letter-spacing: -.1px; }
 .settings-card-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .settings-status { color: var(--colorNeutralForeground3); font-size: 13px; }

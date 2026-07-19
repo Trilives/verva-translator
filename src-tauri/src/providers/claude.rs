@@ -69,6 +69,28 @@ where
     .await
 }
 
+pub async fn probe(
+    client: &reqwest::Client,
+    profile: &crate::models::ProviderProfile,
+    key: &str,
+) -> Result<(), String> {
+    let response = client
+        .post(endpoint(&profile.base_url))
+        .header("x-api-key", key)
+        .header("anthropic-version", "2023-06-01")
+        .json(&json!({
+            "model": profile.model,
+            "messages": [{"role": "user", "content": "ping"}],
+            "max_tokens": 1,
+            "stream": false
+        }))
+        .timeout(std::time::Duration::from_secs(20))
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    super::check_probe_response(response.status(), response.text().await.ok()).await
+}
+
 fn endpoint(base: &str) -> String {
     let base = base.trim_end_matches('/');
     if base.ends_with("/v1/messages") {

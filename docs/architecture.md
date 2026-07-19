@@ -42,28 +42,37 @@ Note that preferences are read and written by the frontend **directly through
 the Store plugin**, not through Rust commands. Rust reads the same store when it
 needs a profile for a translation.
 
-## 3. Windows and popup model
+## 3. Window and page model
 
-The application has two Tauri windows:
+The application has exactly one Tauri window, `main`, with **native decorations**
+and a Mica backdrop (`transparent: true` plus `windowEffects`). There is no
+hand-drawn title bar and no second OS window.
 
-- `main`: translation workspace, history dialog, and Custom-style editor.
-- `settings`: a separate, single-instance settings window created on demand.
+Workspace, History, and Settings are in-app pages selected from the sidebar.
+Only Custom style, Update, and the close prompt are Fluent `Dialog` surfaces.
 
-Both windows are frameless (`decorations: false`) and draw their own title bar
-via `WindowTitleBar`. Auxiliary surfaces are Fluent UI `Dialog` components inside
-their owner window: no native window controls, no taskbar entry, an upper-left
-title, and bottom actions.
+This replaced an earlier design with a separate `settings` window, which shipped
+two blank-window defects: a frameless second window whose builder deadlocked on
+the main thread, and a Fluent portal that covered the workspace. A single window
+with native chrome removes both classes of failure. **Do not reintroduce a second
+window without re-reading §11.**
 
-Opening Settings twice focuses the existing settings window. Opening the
-application twice focuses and restores the existing main window through the
-Tauri single-instance plugin.
+Launching the application twice restores and focuses the existing window through
+the single-instance plugin, which calls the same `tray::show_main` used by the
+tray icon.
 
-### Creating the settings window
+### Closing and the tray
 
-`open_settings_window` **must remain an `async` command.** Tauri runs synchronous
-commands on the main thread, where `WebviewWindowBuilder::build()` deadlocks on
-Windows: the window shell is created but `build()` never returns, so the webview
-stays on `about:blank` and the window renders as a blank white surface.
+A tray icon is registered at startup. `WindowEvent::CloseRequested` on `main` is
+intercepted and resolved against `closeBehavior` read from the store:
+
+- `exit`: the close proceeds and the process ends.
+- `tray`: the close is prevented and the window is hidden.
+- `ask` (default): the close is prevented and `close-requested` is emitted, so
+  the UI can offer Minimize to tray / Quit, optionally remembering the choice.
+
+The webview holds no `core:window` permissions; hiding and quitting go through
+the `hide_to_tray` and `quit_app` commands.
 
 ### Fluent portals
 
@@ -118,12 +127,17 @@ src-tauri/src/
 
 Registered commands:
 
-- `open_settings_window`, `close_settings_window`
 - `save_api_key`, `has_api_key`, `delete_api_key`
 - `start_translation`, `cancel_translation`
+- `test_profile`
 - `list_history`, `clear_history`
 - `install_mode`
 - `check_update`
+- `hide_to_tray`, `quit_app`
+
+`test_profile` sends one `max_tokens: 1` request to the configured endpoint and
+returns reachability plus latency. Its error text passes through
+`providers::redact`, which strips the active key and caps the message length.
 
 Commands delegate immediately to modules. Command modules do not contain
 provider parsing, filesystem policy, or UI strings.
@@ -180,10 +194,16 @@ window/event, store, updater, and process permissions it uses. Shell and
 unrestricted filesystem plugins are not exposed. The content-security policy
 permits only the Tauri origin and local assets.
 
-**Known gaps.** Provider error bodies are not size-limited, responses are not
-bounded, and there is no explicit request timeout or redirect bound. Errors are
-returned as plain strings and are not systematically secret-redacted. These are
-intended, not implemented.
+Interface state (page, languages, style, custom style, settings tab) is stored
+under a separate `ui-state` key so the window looks the same on the next launch.
+It must never gain a field carrying source text or a translation result:
+`settings.json` is plain JSON, and translation content belongs in the vault.
+`src/services/uiState.test.ts` enforces this.
+
+**Known gaps.** Streaming responses are not size-bounded and the streaming path
+has no explicit request timeout or redirect bound; only `test_profile` sets a
+timeout. Redaction is applied to connectivity-test failures but not yet to every
+streaming error path. These are intended, not implemented.
 
 ## 7. Preferences and profiles
 

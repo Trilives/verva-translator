@@ -7,12 +7,21 @@ import { MainPage } from "./pages/MainPage";
 import { HistoryPage } from "./pages/HistoryPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { Sidebar } from "./components/Sidebar";
-import type { HistoryEntry } from "./domain/types";
+import { ClosePromptDialog } from "./components/ClosePromptDialog";
+import { hideToTray, onCloseRequested, quitApp } from "./services/backend";
+import type { CloseBehavior, HistoryEntry } from "./domain/types";
 
 export function AppShell() {
   const state = useAppSettings();
   const ui = useUiState();
   const [restored, setRestored] = useState<HistoryEntry>();
+  const [closePrompt, setClosePrompt] = useState(false);
+
+  useEffect(() => {
+    let stop = () => {};
+    onCloseRequested(() => setClosePrompt(true)).then((off) => { stop = off; });
+    return () => stop();
+  }, []);
 
   const theme = state.settings?.theme ?? "system";
   const dark = theme === "dark" || (theme === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
@@ -23,6 +32,12 @@ export function AppShell() {
   }
 
   const restore = (entry: HistoryEntry) => { setRestored(entry); ui.patch({ page: "workspace" }); };
+
+  const chooseClose = async (choice: CloseBehavior & ("tray" | "exit"), remember: boolean) => {
+    setClosePrompt(false);
+    if (remember && state.settings) await state.update({ ...state.settings, closeBehavior: choice });
+    await (choice === "tray" ? hideToTray() : quitApp());
+  };
 
   return (
     <FluentProvider theme={dark ? teamsDarkTheme : webLightTheme} className="provider-root">
@@ -37,6 +52,7 @@ export function AppShell() {
               section={ui.state.settingsSection} onSection={(settingsSection) => ui.patch({ settingsSection })} />}
           </main>
         </div>
+        <ClosePromptDialog open={closePrompt} onCancel={() => setClosePrompt(false)} onChoose={chooseClose} />
       </I18nProvider>
     </FluentProvider>
   );

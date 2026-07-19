@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import type { HistoryEntry, TranslationChunk, TranslationRequest } from "../domain/types";
+import type { HistoryEntry, ProviderProfile, TranslationChunk, TranslationRequest } from "../domain/types";
 import { isTauri } from "./runtime";
 
 export const hasApiKey =(profileId: string) => isTauri() ? invoke<boolean>("has_api_key", { profileId }) : Promise.resolve(false);
@@ -10,6 +10,17 @@ export const cancelTranslation = (requestId: string) => invoke<void>("cancel_tra
 export const listHistory = () => isTauri() ? invoke<HistoryEntry[]>("list_history") : Promise.resolve([]);
 export const clearHistory = () => invoke<void>("clear_history");
 export const detectInstallMode = () => isTauri() ? invoke<"installed" | "portable">("install_mode") : Promise.resolve("portable");
+export const hideToTray = () => invoke<void>("hide_to_tray");
+export const quitApp = () => invoke<void>("quit_app");
+
+export interface ConnectionReport { ok: boolean; latencyMs?: number; message?: string }
+export const testProfile = (profile: ProviderProfile) =>
+  isTauri() ? invoke<ConnectionReport>("test_profile", { profile })
+    : Promise.resolve<ConnectionReport>({ ok: false, message: "Not running in the desktop app" });
+
+export function onCloseRequested(handler: () => void): Promise<UnlistenFn> {
+  return listen("close-requested", () => handler());
+}
 
 export async function startTranslation(request: TranslationRequest) {
   await invoke("start_translation", { request });

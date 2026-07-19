@@ -1,6 +1,6 @@
 import { Button, Radio, RadioGroup } from "@fluentui/react-components";
 import { ArrowSync20Regular } from "@fluentui/react-icons";
-import type { AppSettings, UiLocale, UpdateChannel } from "../domain/types";
+import type { AppSettings, CloseBehavior, UiLocale, UpdateChannel } from "../domain/types";
 import { useI18n } from "../i18n/I18nContext";
 import { ShortcutRecorder } from "./ShortcutRecorder";
 
@@ -23,6 +23,16 @@ export function GeneralSection({ settings, update }: { settings: AppSettings; up
         <Radio value="light" label={t("light")} />
         <Radio value="dark" label={t("dark")} />
       </RadioGroup>
+    </section>
+    <section className="settings-card">
+      <h2>{t("closeBehavior")}</h2>
+      <RadioGroup value={settings.closeBehavior}
+        onChange={(_, d) => update({ ...settings, closeBehavior: d.value as CloseBehavior })}>
+        <Radio value="ask" label={t("closeAsk")} />
+        <Radio value="tray" label={t("minimizeToTray")} />
+        <Radio value="exit" label={t("quitApp")} />
+      </RadioGroup>
+      <p className="settings-note">{t("trayNote")}</p>
     </section>
   </div>;
 }

@@ -72,6 +72,27 @@ where
     .await
 }
 
+pub async fn probe(
+    client: &reqwest::Client,
+    profile: &crate::models::ProviderProfile,
+    key: &str,
+) -> Result<(), String> {
+    let response = client
+        .post(endpoint(&profile.base_url))
+        .bearer_auth(key)
+        .json(&json!({
+            "model": profile.model,
+            "messages": [{"role": "user", "content": "ping"}],
+            "max_tokens": 1,
+            "stream": false
+        }))
+        .timeout(std::time::Duration::from_secs(20))
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    super::check_probe_response(response.status(), response.text().await.ok()).await
+}
+
 fn endpoint(base: &str) -> String {
     let base = base.trim_end_matches('/');
     if base.ends_with("/chat/completions") {

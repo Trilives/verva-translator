@@ -8,6 +8,16 @@ Verva Translate is a Windows-first, bring-your-own-AI translator. It connects di
 
 I started Verva because I was extremely dissatisfied with machine translation. Too many tools return wording that is technically correct but stiff, context-blind, or unlike anything a person would actually say. Better AI translators often add an expensive monthly fee, while still preventing users from choosing the API and model themselves. Verva exists to return that control to the user.
 
+## Preview
+
+The workspace: tone and style above, each language selector on the pane it applies to.
+
+![Verva Translate workspace](docs/Pictures/preview-en-workspace.png)
+
+Settings: configurations are a list; selecting one opens the full editor with a connectivity test.
+
+![Verva Translate settings](docs/Pictures/preview-en-settings.png)
+
 ## Highlights
 
 - OpenAI-compatible and Claude-compatible streaming APIs; no demo engine or bundled model.
@@ -16,7 +26,9 @@ I started Verva because I was extremely dissatisfied with machine translation. T
 - Automatic source-language detection that remains visibly separate from the Auto Detect selector and participates correctly in language swapping.
 - Major target languages plus a final Custom option for any language supported by the chosen model.
 - Editable streamed results, Stop, visible Copy and bordered Clear actions, and configurable shortcuts.
-- A separate bilingual Settings window; English or Simplified Chinese can be selected inside the app.
+- Settings and History are in-app pages, not extra windows; English or Simplified Chinese can be selected inside the app.
+- A connectivity test for each configuration, so a Base URL, model, and key can be checked before translating.
+- Closing the window can minimize to the notification area, quit, or ask each time.
 - Stronghold-encrypted local history limited to 100 entries, single-instance behavior, and stable/beta signed updates.
 - A conventional bilingual NSIS installer with destination selection and progress, plus a versioned portable executable.
 
@@ -32,11 +44,12 @@ Verva requires an AI-compatible API. Custom language support, thinking mode, out
 ## Configure a model
 
 1. Open **Settings** from the left rail.
-2. Add or select a configuration.
+2. Add a configuration, or select one to expand it.
 3. Choose **OpenAI compatible** or **Claude compatible**.
 4. Enter its HTTPS Base URL, model name, and API key. Plain HTTP is accepted only for localhost.
 5. Optionally enable Thinking mode or Long conversation.
-6. Close Settings and select the configuration in the main window.
+6. Use **Test connection** to confirm the endpoint answers, then **Save**. The row collapses once saved.
+7. Return to the workspace and pick the configuration from the header.
 
 Long conversation keeps source/result pairs in memory and repeats the translation requirements on every request. It improves consistency across related rounds but uses more tokens. Verva shows the session start time, provides a refresh action, and warns at 50% of the configured context limit.
 
@@ -82,13 +95,14 @@ src/                         React + TypeScript + Fluent UI React v9
   domain/                    Provider-neutral types and catalogs
   hooks/                     Application interaction state
   i18n/                      English and Simplified Chinese messages
-  pages/                     Main and separate Settings windows
+  pages/                     Workspace, History, and Settings pages
   services/                  Typed Tauri/plugin adapters
 src-tauri/                   Tauri 2 Rust desktop core
   capabilities/              Per-window least-privilege policy
   src/providers/             OpenAI/Claude streaming adapters
   src/security.rs            DPAPI-protected Stronghold bootstrap
-docs/                        Architecture, modularization, and rewrite plan
+  src/tray.rs                Notification-area icon and menu
+docs/                        Architecture and modularization notes
 .github/workflows/           Stable/beta Windows release pipeline
 ```
 

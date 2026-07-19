@@ -21,9 +21,12 @@ export interface ShortcutSettings {
   copy: string;
 }
 
+export type CloseBehavior = "ask" | "tray" | "exit";
+
 export interface AppSettings {
   locale: UiLocale;
   theme: "system" | "light" | "dark";
+  closeBehavior: CloseBehavior;
   updateMode: "automatic" | "manual";
   updateChannel: UpdateChannel;
   activeProfileId: string;
