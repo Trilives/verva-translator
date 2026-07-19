@@ -135,6 +135,24 @@ translation streams; the translate shortcut is guarded the same way, since a
 restart would discard the partial result. Stop is rendered on the result pane
 only while streaming.
 
+### Synced editor scrolling
+
+Scrolling either editor moves the other to the same fraction of its own
+scrollable range, so the two stay aligned end to end. The panes hold the same
+text in different languages and rarely share a height, which is why this matches
+a proportion rather than a pixel offset.
+
+`useSyncedScroll` listens on the pane container in the **capture** phase:
+`scroll` does not bubble, but it is still delivered to ancestors during capture,
+and this keeps the hook independent of how Fluent forwards a ref into its
+`textarea` slot. Writing to the follower emits another scroll event, so the
+driving pane is latched briefly and the follower's echo is ignored; without that
+the two feed back into each other and judder. Sub-pixel corrections are skipped
+for the same reason.
+
+The arithmetic lives in the exported `followerScrollTop`, which takes plain
+`{ scrollTop, scrollHeight, clientHeight }` values so it is tested without a DOM.
+
 Source text and translation state live in `useWorkspace`, called by `AppShell`
 rather than by `MainPage`. Selecting History or Settings unmounts the workspace
 page, so state owned by the page was discarded: a half-typed input vanished on

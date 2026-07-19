@@ -5,6 +5,7 @@ import {
 } from "@fluentui/react-icons";
 import { useI18n } from "../i18n/I18nContext";
 import { useActionFeedback } from "../hooks/useActionFeedback";
+import { useSyncedScroll } from "../hooks/useSyncedScroll";
 import { LanguageSelect } from "./LanguageSelect";
 
 interface Props {
@@ -19,9 +20,10 @@ interface Props {
 export function TranslatePanes(props: Props) {
   const { t } = useI18n();
   const copied = useActionFeedback();
+  const panes = useSyncedScroll<HTMLElement>();
   const copy = () => { props.onCopy(); copied.trigger(); };
 
-  return <section className="translate-panes">
+  return <section className="translate-panes" ref={panes}>
     <div className="pane input-pane">
       <header className="pane-header">
         <LanguageSelect kind="source" value={props.source} detected={props.detected} onChange={props.onSource} />

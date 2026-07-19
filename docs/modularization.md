@@ -168,6 +168,9 @@ Treat these as required for any change that touches provider error handling.
   streaming, so it sits beside the output it interrupts.
 - The action rows reserve their height, so a pane must not resize when Stop
   appears or disappears.
+- Scrolling either editor moves the other to the same fraction of its own
+  range. The two panes rarely share a height, so this is a proportion, never a
+  pixel offset, and the follower's echo must never drive the pair back.
 - Style labels must not shift on hover or selection; the bold ghost in
   `.style-bubble-label::after` reserves the selected width.
 - One Save per configuration. Saving collapses the row.
