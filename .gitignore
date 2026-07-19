@@ -9,7 +9,11 @@ node_modules/
 .cargo-home/
 *.tsbuildinfo
 src-tauri/target/
+# Cargo invoked from the repository root rather than src-tauri lands here.
+target/
 src-tauri/tauri.release.conf.json
+# Staging directory the release workflow builds; only meaningful inside a run.
+release/
 *.pdb
 *.msi
 *.msix
@@ -17,8 +21,13 @@ src-tauri/tauri.release.conf.json
 *.appxbundle
 *.exe
 
-# Visual Studio and user settings
+# Editor, IDE and agent tooling. These hold machine-specific absolute paths,
+# so they must never be committed: .claude/launch.json carried a full local
+# toolchain path, including the user name, before it was untracked.
 .vs/
+.vscode/
+.idea/
+.claude/
 *.user
 *.suo
 *.userosscache
@@ -41,5 +50,6 @@ secrets.json
 Thumbs.db
 Desktop.ini
 
-# Local agent/editor tooling (machine-specific absolute paths)
-.claude/
+# Logs
+*.log
+npm-debug.log*
