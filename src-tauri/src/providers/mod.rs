@@ -122,6 +122,146 @@ pub fn build_user_prompt(
 }
 
 #[cfg(test)]
+mod mock;
+
+#[cfg(test)]
+mod stream_tests {
+    use super::mock::MockProvider;
+    use super::*;
+    use crate::models::{ProviderKind, ProviderProfile};
+    use std::sync::atomic::Ordering;
+    use std::time::Duration;
+
+    fn profile(base_url: String) -> ProviderProfile {
+        ProviderProfile {
+            id: "test-profile".into(),
+            kind: ProviderKind::Openai,
+            base_url,
+            model: "mock-model".into(),
+            thinking: false,
+            long_conversation: false,
+            context_limit: 128_000,
+        }
+    }
+
+    fn deltas(parts: &[&str]) -> Vec<String> {
+        parts.iter().map(|part| (*part).to_owned()).collect()
+    }
+
+    /// The whole path the frontend payload travels: prompt construction, the
+    /// loopback policy, request framing, SSE parsing and delta assembly.
+    #[tokio::test]
+    async fn streams_a_translation_and_sends_the_selected_tone() {
+        let server = MockProvider::start(
+            deltas(&["[[LANGUAGE:", "English]]\n", "Bonjour", " le monde"]),
+            Duration::from_millis(5),
+        );
+        let profile = profile(server.base_url.clone());
+        let client = reqwest::Client::new();
+
+        // Exactly what a user-defined tone produces on the frontend: the tone's
+        // name as the style, its requirements as the free text.
+        let prompt = build_user_prompt(
+            "Auto Detect",
+            "French",
+            "Academic",
+            "Cite terminology precisely.",
+            "Hello world",
+        );
+
+        let mut received = String::new();
+        stream_translation(
+            &client,
+            &profile,
+            "sk-test-key-not-real",
+            &[],
+            &prompt,
+            Arc::new(AtomicBool::new(false)),
+            |delta| received.push_str(&delta),
+        )
+        .await
+        .expect("streaming should succeed against the mock endpoint");
+
+        assert_eq!(received, "[[LANGUAGE:English]]\nBonjour le monde");
+
+        let request = server.captured_request();
+        assert!(
+            request.contains("mock-model"),
+            "model must reach the provider"
+        );
+        // Asserted as one contiguous phrase, not as separate `contains` calls:
+        // loose checks still pass when the prompt arguments are transposed.
+        assert!(
+            request
+                .contains("Style: Academic. Additional requirements: Cite terminology precisely."),
+            "the tone name and its requirements must arrive in the right fields, got {request}"
+        );
+        assert!(
+            request.contains("Translate from Auto Detect to French."),
+            "languages must arrive in the right order, got {request}"
+        );
+        assert!(
+            request.contains("Hello world"),
+            "source text must reach the provider"
+        );
+    }
+
+    /// Stop must actually end the stream rather than merely hiding the output.
+    #[tokio::test]
+    async fn cancellation_stops_consuming_the_stream() {
+        let server = MockProvider::start(
+            deltas(&[
+                "[[LANGUAGE:English]]\n",
+                "one ",
+                "two ",
+                "three ",
+                "four ",
+                "five ",
+            ]),
+            Duration::from_millis(60),
+        );
+        let profile = profile(server.base_url.clone());
+        let client = reqwest::Client::new();
+        let cancel = Arc::new(AtomicBool::new(false));
+
+        let flag = cancel.clone();
+        let mut chunks = 0usize;
+        let mut received = String::new();
+        stream_translation(
+            &client,
+            &profile,
+            "sk-test-key-not-real",
+            &[],
+            &build_user_prompt("Auto Detect", "French", "natural", "", "count"),
+            cancel.clone(),
+            |delta| {
+                chunks += 1;
+                received.push_str(&delta);
+                if chunks == 2 {
+                    flag.store(true, Ordering::SeqCst);
+                }
+            },
+        )
+        .await
+        .expect("a cancelled stream ends cleanly rather than erroring");
+
+        assert!(
+            !received.contains("five"),
+            "cancellation should stop well before the end, got {received:?}"
+        );
+    }
+
+    /// A builtin tone sends its key and no requirements; the prompt says so
+    /// explicitly rather than leaving the model to guess.
+    #[test]
+    fn builtin_tone_reports_no_extra_requirements() {
+        let prompt = build_user_prompt("English", "German", "business", "", "Hello");
+        assert!(prompt.contains("Style: business"));
+        assert!(prompt.contains("Additional requirements: none"));
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
     #[test]

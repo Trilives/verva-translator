@@ -365,16 +365,33 @@ The workflow does not currently run ESLint, `cargo fmt --check`, or
 
 Current automated coverage is deliberately small:
 
-- `src/domain/catalogs.test.ts`: language and tone catalogue invariants
-- `src/i18n/messages.test.ts`: English/Chinese key parity and fixed placeholders
+- `src/domain/catalogs.test.ts`: language and tone catalogue invariants, and the
+  style payload the backend receives
+- `src/i18n/messages.test.ts`: English/Chinese key parity, and that no Chinese
+  string is left identical to its English source
+- `src/i18n/languages.test.ts`: language-name coverage in both locales, and that
+  the lookup tolerates arbitrary model output
+- `src/hooks/useSyncedScroll.test.ts`: proportional scroll arithmetic
 - `src/styles/stylesheets.test.ts`: Fluent portal layout regression guard,
   plus the stylesheet composition rules in §4
 - `src/services/uiState.test.ts`: persisted shape and the tone migration
-- `src-tauri`: endpoint HTTPS/loopback policy, secret redaction, and the
-  install-directory resolution behind `install_mode`
+- `src-tauri`: endpoint HTTPS/loopback policy, secret redaction, the
+  install-directory resolution behind `install_mode`, and the streaming tests
+  below
+
+`providers::stream_tests` runs a real translation through the real adapter
+against `providers::mock`, a loopback SSE endpoint built for tests. It covers
+prompt construction, request framing, SSE parsing, delta assembly and
+cancellation, and asserts the tone name and its requirements arrive in the right
+fields. That assertion is deliberately one contiguous phrase: separate
+`contains` checks still pass when the prompt arguments are transposed, which is
+exactly the mistake it was written to catch.
 
 **Not yet covered**, though described as goals: React behaviour tests, streaming
-coalescing, session threshold, provider payload and SSE parsing tests, command
-serialization, and release smoke checks.
+coalescing, the session threshold, the Tauri command and IPC layer, and release
+smoke checks. Nothing exercises the packaged desktop binary, so a change to
+window creation or a Fluent portal surface still has to be opened by hand.
 
-No test may call a paid model endpoint.
+No test may call a paid model endpoint. `providers::mock` exists so the
+streaming path can be exercised without one; loopback HTTP is permitted by
+`validate_endpoint` precisely so local models work.

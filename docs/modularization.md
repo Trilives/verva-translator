@@ -191,8 +191,15 @@ Treat these as required for any change that touches provider error handling.
 - Pure TypeScript tests live beside the module as `*.test.ts`.
 - React behavior tests live as `*.test.tsx` beside the component.
 - Rust unit tests live in the module; cross-module tests belong under
-  `src-tauri/tests`, which does not exist yet.
+  `src-tauri/tests`, which does not exist yet. The streaming tests stay in
+  `providers` because the modules in `lib.rs` are private, so an external test
+  crate cannot reach them, and widening that surface only for tests is not worth
+  it.
+- A test double that needs a socket or a filesystem lives in its own
+  `#[cfg(test)] mod`, like `providers::mock`, rather than inline in the test.
 - A bug fix adds a regression test at the lowest layer that can reproduce it.
+- Assert a payload as one contiguous phrase where field order matters. Separate
+  `contains` checks pass happily when arguments are transposed.
 
 ## 11. Review checklist
 

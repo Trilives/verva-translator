@@ -1,4 +1,4 @@
-import type { BuiltinStyle } from "./types";
+import type { BuiltinStyle, CustomStyle, TranslationStyle } from "./types";
 
 export const languages = [
   "Auto Detect", "English", "Chinese (Simplified)", "Chinese (Traditional)",
@@ -19,6 +19,21 @@ export const maxCustomStyles = 4;
 
 export const isBuiltinStyle = (style: string): style is BuiltinStyle =>
   (builtinStyles as string[]).includes(style);
+
+/**
+ * What the backend receives for the selected tone.
+ *
+ * Rust interpolates `style` as a label and `customStyle` as free-text
+ * requirements, so a user-defined tone sends its **name** rather than its id: a
+ * UUID in the prompt would mean nothing to the model. A builtin sends its key
+ * and no requirements.
+ */
+export function stylePayload(style: TranslationStyle, customStyles: CustomStyle[]) {
+  const selected = customStyles.find((entry) => entry.id === style);
+  return selected
+    ? { style: selected.name, customStyle: selected.requirements }
+    : { style, customStyle: "" };
+}
 
 export const defaultProfile = () => ({
   id: crypto.randomUUID(),

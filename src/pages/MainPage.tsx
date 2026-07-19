@@ -1,7 +1,7 @@
 import { MessageBar, MessageBarBody } from "@fluentui/react-components";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { AppSettings, CustomStyle, HistoryEntry, TranslationStyle } from "../domain/types";
-import { isBuiltinStyle, maxCustomStyles } from "../domain/catalogs";
+import { isBuiltinStyle, maxCustomStyles, stylePayload } from "../domain/catalogs";
 import type { UiState } from "../services/uiState";
 import type { Workspace } from "../hooks/useWorkspace";
 import { useShortcuts } from "../hooks/useShortcuts";
@@ -57,13 +57,10 @@ export function MainPage({ settings, update, ui, patchUi, workspace, restored, o
     // The button is disabled while streaming, but the shortcut still fires;
     // restarting here would discard the partial result.
     if (!active?.hasApiKey || translation.busy) return;
-    // Rust receives a style label plus free-text requirements; a user-defined
-    // tone supplies both, a builtin only the label.
-    const selected = customStyles.find((entry) => entry.id === style);
     translation.start({
       profileId: active.id, sourceLanguage: source,
       targetLanguage: target === "Custom" ? customTarget : target, sourceText: input,
-      style: selected ? selected.name : style, customStyle: selected?.requirements ?? "",
+      ...stylePayload(style, customStyles),
       contextLimit: active.contextLimit, longConversation: active.longConversation
     });
   }, [active, customStyles, customTarget, input, source, style, target, translation]);
