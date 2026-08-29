@@ -48,8 +48,10 @@
 .profile-toolbar { display: flex; gap: 10px; }
 .settings-stack { display: grid; gap: 14px; align-content: start; }
 .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.model-row { display: flex; gap: 8px; min-width: 0; }
+.model-row > [role="combobox"] { flex: 1; min-width: 0; }
 
-/* Configuration list: collapsed rows that expand into the full editor. */
+/* Configuration list: rows that expand into the full auto-saving editor. */
 .profile-list { display: grid; gap: 8px; }
 .profile-row {
   border: 1px solid var(--colorNeutralStroke2);

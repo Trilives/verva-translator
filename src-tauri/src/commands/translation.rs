@@ -1,4 +1,4 @@
-use super::secrets::secret_key;
+use super::secrets::load_provider_key;
 use crate::{
     history,
     models::{
@@ -31,12 +31,7 @@ pub fn start_translation(
     request: TranslationRequest,
 ) -> Result<(), String> {
     let profile = load_profile(&app, &request.profile_id)?;
-    let key_bytes = state
-        .secrets
-        .get(&secret_key(&profile.id))?
-        .ok_or("No API key is stored for this configuration")?;
-    let api_key =
-        Zeroizing::new(String::from_utf8(key_bytes).map_err(|_| "The stored API key is invalid")?);
+    let api_key = load_provider_key(&state, &profile)?;
     let cancelled = Arc::new(AtomicBool::new(false));
     state
         .cancellations

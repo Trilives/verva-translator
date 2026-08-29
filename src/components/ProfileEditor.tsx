@@ -1,113 +1,116 @@
-import { Button, Field, Input, Select, Spinner, Switch } from "@fluentui/react-components";
 import {
-  Checkmark20Filled, CheckmarkCircle20Filled, Delete20Regular,
-  DismissCircle20Filled, PlugConnected20Regular, Save20Regular
+  Button, Combobox, Field, Input, Option, Select, Spinner, Switch, Tooltip
+} from "@fluentui/react-components";
+import {
+  ArrowSync20Regular, CheckmarkCircle20Filled, Delete20Regular,
+  DismissCircle20Filled, PlugConnected20Regular
 } from "@fluentui/react-icons";
 import { useEffect, useState } from "react";
 import type { ProviderProfile } from "../domain/types";
-import { saveApiKey, testProfile, type ConnectionReport } from "../services/backend";
+import { isAllowedProviderUrl, isLanBaseUrl } from "../domain/providerUrl";
+import { listModels, testProfile, type ConnectionReport } from "../services/backend";
 import { useI18n } from "../i18n/I18nContext";
-import { useActionFeedback } from "../hooks/useActionFeedback";
 
 interface Props {
   profile: ProviderProfile;
   canDelete: boolean;
-  onSave: (profile: ProviderProfile) => Promise<void> | void;
+  apiKeyDraft: string;
+  onApiKeyDraft: (value: string) => void;
+  onSaveKey: () => Promise<void>;
+  onChange: (changes: Partial<ProviderProfile>) => void;
   onDelete: () => void;
 }
 
-const isValidUrl = (value: string) => {
-  try {
-    const url = new URL(value);
-    return url.protocol === "https:" || (url.protocol === "http:" && ["localhost", "127.0.0.1", "::1"].includes(url.hostname));
-  } catch { return false; }
-};
-
-/** Full editor for one configuration. Everything commits through a single Save. */
-export function ProfileEditor({ profile, canDelete, onSave, onDelete }: Props) {
+export function ProfileEditor(props: Props) {
+  const { profile } = props;
   const { t } = useI18n();
-  const [draft, setDraft] = useState(profile);
-  const [key, setKey] = useState("");
   const [testing, setTesting] = useState(false);
   const [report, setReport] = useState<ConnectionReport>();
-  const saved = useActionFeedback();
-  useEffect(() => { setDraft(profile); setKey(""); setReport(undefined); }, [profile]);
+  const [models, setModels] = useState<string[]>([]);
+  const [modelStatus, setModelStatus] = useState("");
+  const [loadingModels, setLoadingModels] = useState(false);
+  const urlBroken = !isAllowedProviderUrl(profile.baseUrl);
 
-  const patch = <K extends keyof ProviderProfile>(field: K, value: ProviderProfile[K]) =>
-    setDraft((current) => ({ ...current, [field]: value }));
+  useEffect(() => {
+    setModels([]);
+    setModelStatus("");
+    setReport(undefined);
+  }, [profile.id, profile.kind, profile.baseUrl]);
 
-  const urlBroken = !isValidUrl(draft.baseUrl);
-  const dirty = key.trim().length > 0
-    || (Object.keys(draft) as (keyof ProviderProfile)[]).some((field) => draft[field] !== profile[field]);
-
-  const save = async () => {
+  const refreshModels = async () => {
     if (urlBroken) return;
-    let next = draft;
-    if (key.trim()) {
-      await saveApiKey(profile.id, key.trim());
-      setKey("");
-      next = { ...next, hasApiKey: true };
-    }
-    saved.trigger();
-    await onSave(next);
+    setLoadingModels(true); setModelStatus("");
+    try {
+      if (props.apiKeyDraft.trim()) await props.onSaveKey();
+      const found = await listModels(profile);
+      setModels(found);
+      setModelStatus(found.length ? t("modelsFound").replace("{count}", String(found.length)) : t("noModelsFound"));
+    } catch (error) {
+      setModelStatus(`${t("modelRefreshFailed")}: ${String(error)}`);
+    } finally { setLoadingModels(false); }
   };
 
-  // Tests the saved key against the draft endpoint, so an unsaved base URL or
-  // model can be checked before committing it.
   const test = async () => {
-    setTesting(true);
-    setReport(undefined);
+    setTesting(true); setReport(undefined);
     try {
-      if (key.trim()) await saveApiKey(profile.id, key.trim());
-      setReport(await testProfile(draft));
+      if (props.apiKeyDraft.trim()) await props.onSaveKey();
+      setReport(await testProfile(profile));
     } catch (error) {
       setReport({ ok: false, message: String(error) });
-    } finally {
-      setTesting(false);
-    }
+    } finally { setTesting(false); }
   };
 
   return <div className="profile-editor">
     <div className="form-grid">
       <Field label={t("profile")}>
-        <Input value={draft.name} onChange={(_, d) => patch("name", d.value)} />
+        <Input value={profile.name} onChange={(_, d) => props.onChange({ name: d.value })} />
       </Field>
       <Field label={t("provider")}>
-        <Select value={draft.kind} onChange={(_, d) => patch("kind", d.value as ProviderProfile["kind"])}>
+        <Select value={profile.kind} onChange={(_, d) => props.onChange({ kind: d.value as ProviderProfile["kind"] })}>
           <option value="openai">{t("openAi")}</option>
           <option value="claude">{t("claude")}</option>
         </Select>
       </Field>
       <Field label={t("baseUrl")} validationMessage={urlBroken ? t("invalidUrl") : undefined}
         validationState={urlBroken ? "error" : "none"}>
-        <Input value={draft.baseUrl} onChange={(_, d) => patch("baseUrl", d.value)} />
+        <Input value={profile.baseUrl} onChange={(_, d) => props.onChange({ baseUrl: d.value })} />
       </Field>
-      <Field label={t("model")}>
-        <Input value={draft.model} onChange={(_, d) => patch("model", d.value)} />
+      <Field label={t("model")} hint={modelStatus || t("modelHint")}>
+        <div className="model-row">
+          <Combobox freeform value={profile.model} selectedOptions={models.includes(profile.model) ? [profile.model] : []}
+            onChange={(event) => props.onChange({ model: event.target.value })}
+            onOptionSelect={(_, data) => props.onChange({ model: data.optionText ?? "" })}>
+            {models.map((model) => <Option key={model} value={model}>{model}</Option>)}
+          </Combobox>
+          <Tooltip content={t("refreshModels")} relationship="label">
+            <Button aria-label={t("refreshModels")} icon={loadingModels ? <Spinner size="tiny" /> : <ArrowSync20Regular />}
+              disabled={loadingModels || urlBroken} onClick={refreshModels} />
+          </Tooltip>
+        </div>
       </Field>
-      <Field label={t("apiKey")} hint={profile.hasApiKey ? t("apiKeySaved") : t("apiKeyMissing")}>
-        <Input type="password" value={key} placeholder={t("apiKeyPlaceholder")} onChange={(_, d) => setKey(d.value)} />
+      <Field label={t("apiKey")} hint={profile.hasApiKey ? t("apiKeySaved")
+        : t(isLanBaseUrl(profile.baseUrl) ? "apiKeyOptional" : "apiKeyMissing")}>
+        <Input type="password" value={props.apiKeyDraft} placeholder={t("apiKeyPlaceholder")}
+          onChange={(_, d) => props.onApiKeyDraft(d.value)} onBlur={() => void props.onSaveKey()} />
       </Field>
       <Field label={t("contextLimit")}>
-        <Input type="number" min={1024} value={String(draft.contextLimit)}
-          onChange={(_, d) => patch("contextLimit", Math.max(1024, Number(d.value) || 1024))} />
+        <Input type="number" min={1024} value={String(profile.contextLimit)}
+          onChange={(_, d) => props.onChange({ contextLimit: Math.max(1024, Number(d.value) || 1024) })} />
       </Field>
     </div>
 
     <div className="switch-list">
-      <Switch checked={draft.thinking} label={t("thinking")} onChange={(_, d) => patch("thinking", d.checked)} />
+      <Switch checked={profile.thinking} label={t("thinking")} onChange={(_, d) => props.onChange({ thinking: d.checked })} />
       <div>
-        <Switch checked={draft.longConversation} label={t("longConversation")}
-          onChange={(_, d) => patch("longConversation", d.checked)} />
+        <Switch checked={profile.longConversation} label={t("longConversation")}
+          onChange={(_, d) => props.onChange({ longConversation: d.checked })} />
         <p>{t("longConversationHint")}</p>
       </div>
     </div>
 
     <div className="connection-test">
       <Button className="press" appearance="outline" icon={testing ? <Spinner size="tiny" /> : <PlugConnected20Regular />}
-        disabled={testing || urlBroken} onClick={test}>
-        {testing ? t("testing") : t("testConnection")}
-      </Button>
+        disabled={testing || urlBroken} onClick={test}>{testing ? t("testing") : t("testConnection")}</Button>
       {report && <span className={`connection-result ${report.ok ? "ok" : "failed"}`}>
         {report.ok ? <CheckmarkCircle20Filled /> : <DismissCircle20Filled />}
         {report.ok ? `${t("connectionOk")} (${report.latencyMs} ms)` : report.message}
@@ -115,14 +118,9 @@ export function ProfileEditor({ profile, canDelete, onSave, onDelete }: Props) {
     </div>
 
     <div className="profile-footer">
-      <Button className="press" appearance="subtle" icon={<Delete20Regular />} disabled={!canDelete} onClick={onDelete}>
-        {t("deleteProfile")}
-      </Button>
-      <Button className={`press save-button ${saved.fired ? "fired" : ""}`} appearance="primary"
-        icon={saved.fired ? <Checkmark20Filled /> : <Save20Regular />}
-        disabled={!dirty || urlBroken} onClick={save}>
-        {saved.fired ? t("saved") : t("save")}
-      </Button>
+      <Button className="press" appearance="subtle" icon={<Delete20Regular />}
+        disabled={!props.canDelete} onClick={props.onDelete}>{t("deleteProfile")}</Button>
+      <span className="settings-status">{t("savedAutomatically")}</span>
     </div>
   </div>;
 }

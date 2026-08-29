@@ -138,7 +138,7 @@ last thing to give it up.
 
 - Only Rust-backed commands may access API keys; the webview never receives a
   stored key.
-- Remote HTTP is rejected; loopback HTTP is allowed.
+- Public HTTP is rejected; loopback and private LAN HTTP are allowed.
 - Preferences never contain keys or translation history.
 - History is capped at 100 entries before serialization and stored in the vault.
 - Tauri capabilities are window-specific and least-privilege.
@@ -173,7 +173,7 @@ Treat these as required for any change that touches provider error handling.
   pixel offset, and the follower's echo must never drive the pair back.
 - Style labels must not shift on hover or selection; the bold ghost in
   `.style-bubble-label::after` reserves the selected width.
-- One Save per configuration. Saving collapses the row.
+- Configuration fields save automatically as they change.
 - Shortcuts are recorded, never typed, and always require a modifier unless the
   trigger is a function key.
 - Results become editable after the first chunk.

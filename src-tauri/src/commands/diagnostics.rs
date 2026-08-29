@@ -1,8 +1,7 @@
-use super::secrets::secret_key;
+use super::secrets::load_provider_key;
 use crate::{models::ProviderProfile, providers, state::AppState};
 use serde::Serialize;
 use tauri::State;
-use zeroize::Zeroizing;
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -21,18 +20,16 @@ pub async fn test_profile(
     state: State<'_, AppState>,
     profile: ProviderProfile,
 ) -> Result<ConnectionReport, String> {
-    let key_bytes = match state.secrets.get(&secret_key(&profile.id))? {
-        Some(bytes) => bytes,
-        None => {
+    let api_key = match load_provider_key(&state, &profile) {
+        Ok(key) => key,
+        Err(message) => {
             return Ok(ConnectionReport {
                 ok: false,
                 latency_ms: None,
-                message: Some("No API key is stored for this configuration".into()),
+                message: Some(message),
             })
         }
     };
-    let api_key =
-        Zeroizing::new(String::from_utf8(key_bytes).map_err(|_| "The stored API key is invalid")?);
 
     let started = std::time::Instant::now();
     let outcome = providers::probe(&state.client, &profile, &api_key).await;

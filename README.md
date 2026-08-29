@@ -46,9 +46,9 @@ Verva requires an AI-compatible API. Custom language support, thinking mode, out
 1. Open **Settings** from the left rail.
 2. Add a configuration, or select one to expand it.
 3. Choose **OpenAI compatible** or **Claude compatible**.
-4. Enter its HTTPS Base URL, model name, and API key. Plain HTTP is accepted only for localhost.
+4. Enter its Base URL and select or type a model name. Public endpoints require HTTPS; localhost and private LAN addresses may use HTTP and do not require an API key.
 5. Optionally enable Thinking mode or Long conversation.
-6. Use **Test connection** to confirm the endpoint answers, then **Save**. The row collapses once saved.
+6. Changes save automatically. Use **Test connection** to confirm the endpoint answers.
 7. Return to the workspace and pick the configuration from the header.
 
 Long conversation keeps source/result pairs in memory and repeats the translation requirements on every request. It improves consistency across related rounds but uses more tokens. Verva shows the session start time, provides a refresh action, and warns at 50% of the configured context limit.
@@ -82,7 +82,7 @@ npm run tauri -- build
 - API keys and the bounded history use the official Stronghold engine. Its random vault master key is protected for the current Windows account with DPAPI.
 - Provider keys are read only by Rust, never placed in ordinary settings or logs.
 - App data resolves through Tauri's Windows app-data directory and never depends on this repository path or a developer username.
-- Remote model endpoints require HTTPS; only loopback endpoints may use HTTP.
+- Public model endpoints require HTTPS; loopback and private LAN endpoints may use HTTP.
 - The official Tauri Updater verifies signed update artifacts. Stable and beta use independent rolling manifests.
 
 Source text is sent to the endpoint you configure. Review that provider's data policy before translating sensitive material.

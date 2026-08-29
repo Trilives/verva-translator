@@ -23,6 +23,10 @@ const en = {
   profile: "Configuration", addProfile: "Add configuration", deleteProfile: "Delete",
   provider: "Provider interface", baseUrl: "Base URL", model: "Model", apiKey: "API key",
   apiKeySaved: "A key is stored securely", apiKeyMissing: "No API key stored",
+  apiKeyOptional: "Optional for local and private LAN endpoints",
+  modelHint: "Choose a discovered model or type its name manually.", refreshModels: "Refresh model list",
+  modelsFound: "Found {count} models.", noModelsFound: "No models were returned; you can enter one manually.",
+  modelRefreshFailed: "Could not refresh models", savedAutomatically: "Changes save automatically",
   openAi: "OpenAI compatible", claude: "Claude compatible", thinking: "Thinking mode",
   longConversation: "Long conversation", longConversationHint: "Uses more tokens, but keeps context for more accurate multi-round translation.",
   interfaceLanguage: "Interface language", english: "English", chinese: "简体中文",
@@ -45,7 +49,7 @@ const en = {
   rememberChoice: "Remember my choice",
   trayNote: "The tray icon stays available while the window is hidden.",
   contextLimit: "Context limit", apiKeyPlaceholder: "Paste a key to replace the stored one",
-  invalidUrl: "Use HTTPS for remote endpoints; HTTP is allowed only for localhost.",
+  invalidUrl: "Use HTTPS for public endpoints; HTTP is allowed for localhost and private LAN addresses.",
   keyRequired: "Save an API key for the active configuration before translating.",
   translationFailed: "Translation failed", portableNotice: "Portable builds notify only and do not install updates automatically."
 };
@@ -72,6 +76,10 @@ const zh: typeof en = {
   profile: "配置", addProfile: "新增配置", deleteProfile: "删除", provider: "接口类型",
   baseUrl: "基础 URL", model: "模型", apiKey: "API 密钥", apiKeySaved: "密钥已安全保存",
   apiKeyMissing: "尚未保存 API 密钥", openAi: "OpenAI 兼容", claude: "Claude 兼容",
+  apiKeyOptional: "本机和私有局域网端点可不填",
+  modelHint: "可选择已发现的模型，也可手动输入模型名称。", refreshModels: "刷新模型列表",
+  modelsFound: "已发现 {count} 个模型。", noModelsFound: "接口未返回模型；您仍可手动输入。",
+  modelRefreshFailed: "无法刷新模型列表", savedAutomatically: "更改会自动保存",
   thinking: "思考模式", longConversation: "长会话",
   longConversationHint: "会消耗更多 Token，但可保留上下文，使多轮翻译更准确。",
   interfaceLanguage: "界面语言", english: "English", chinese: "简体中文",
@@ -94,7 +102,7 @@ const zh: typeof en = {
   rememberChoice: "记住我的选择",
   trayNote: "窗口隐藏时，托盘图标仍然可用。",
   contextLimit: "上下文上限", apiKeyPlaceholder: "粘贴新密钥以替换已保存的密钥",
-  invalidUrl: "远程地址必须使用 HTTPS；HTTP 仅允许 localhost。",
+  invalidUrl: "公网地址必须使用 HTTPS；本机和私有局域网地址可使用 HTTP。",
   keyRequired: "翻译前请先为当前配置保存 API 密钥。", translationFailed: "翻译失败",
   portableNotice: "便携版只提示新版本，不会自动安装更新。"
 };

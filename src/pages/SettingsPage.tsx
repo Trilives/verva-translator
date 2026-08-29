@@ -4,7 +4,7 @@ import { useState } from "react";
 import { defaultProfile } from "../domain/catalogs";
 import type { AppSettings, ProviderProfile } from "../domain/types";
 import { useI18n } from "../i18n/I18nContext";
-import { deleteApiKey } from "../services/backend";
+import { deleteApiKey, saveApiKey } from "../services/backend";
 import { checkForUpdate } from "../services/updater";
 import { ProfileList } from "../components/ProfileList";
 import { GeneralSection, ShortcutsSection, UpdatesSection } from "../components/SettingsSections";
@@ -22,25 +22,35 @@ export function SettingsPage({ settings, update, section, onSection }: Props) {
   const { t } = useI18n();
   const [expandedId, setExpandedId] = useState<string>();
   const [updateStatus, setUpdateStatus] = useState("");
+  const [keyDrafts, setKeyDrafts] = useState<Record<string, string>>({});
 
-  const saveProfile = (next: ProviderProfile) =>
-    update({ ...settings, profiles: settings.profiles.map((p) => p.id === next.id ? next : p) });
+  const changeProfile = (id: string, changes: Partial<ProviderProfile>) =>
+    update((current) => ({ ...current,
+      profiles: current.profiles.map((profile) => profile.id === id ? { ...profile, ...changes } : profile)
+    }));
+
+  const saveKey = async (profile: ProviderProfile) => {
+    const key = keyDrafts[profile.id]?.trim();
+    if (!key) return;
+    await saveApiKey(profile.id, key);
+    setKeyDrafts((drafts) => ({ ...drafts, [profile.id]: "" }));
+    await changeProfile(profile.id, { hasApiKey: true });
+  };
 
   const addProfile = async () => {
     const next = defaultProfile();
-    await update({ ...settings, profiles: [...settings.profiles, next], activeProfileId: next.id });
+    await update((current) => ({ ...current, profiles: [...current.profiles, next], activeProfileId: next.id }));
     setExpandedId(next.id);
   };
 
   const removeProfile = async (target: ProviderProfile) => {
     if (settings.profiles.length === 1) return;
     await deleteApiKey(target.id);
-    const profiles = settings.profiles.filter((p) => p.id !== target.id);
     setExpandedId(undefined);
-    await update({
-      ...settings,
-      profiles,
-      activeProfileId: settings.activeProfileId === target.id ? profiles[0].id : settings.activeProfileId
+    await update((current) => {
+      const profiles = current.profiles.filter((profile) => profile.id !== target.id);
+      return { ...current, profiles,
+        activeProfileId: current.activeProfileId === target.id ? profiles[0].id : current.activeProfileId };
     });
   };
 
@@ -73,7 +83,9 @@ export function SettingsPage({ settings, update, section, onSection }: Props) {
           <Button className="press" icon={<Add20Regular />} onClick={addProfile}>{t("addProfile")}</Button>
         </div>
         <ProfileList profiles={settings.profiles} activeId={settings.activeProfileId}
-          expandedId={expandedId} onExpand={setExpandedId} onSave={saveProfile} onDelete={removeProfile} />
+          expandedId={expandedId} onExpand={setExpandedId} keyDrafts={keyDrafts}
+          onKeyDraft={(id, value) => setKeyDrafts((drafts) => ({ ...drafts, [id]: value }))}
+          onSaveKey={saveKey} onChange={changeProfile} onDelete={removeProfile} />
       </div>}
       {section === "general" && <GeneralSection settings={settings} update={update} />}
       {section === "updates" && <UpdatesSection settings={settings} update={update} status={updateStatus} onCheck={checkUpdate} />}

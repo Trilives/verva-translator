@@ -29,13 +29,11 @@ where
     if profile.thinking {
         body["reasoning_effort"] = json!("medium");
     }
-    let response = client
-        .post(endpoint)
-        .bearer_auth(key)
-        .json(&body)
-        .send()
-        .await
-        .map_err(|e| e.to_string())?;
+    let mut request = client.post(endpoint).json(&body);
+    if !key.is_empty() {
+        request = request.bearer_auth(key);
+    }
+    let response = request.send().await.map_err(|e| e.to_string())?;
     if !response
         .headers()
         .get(reqwest::header::CONTENT_TYPE)
@@ -77,20 +75,21 @@ pub async fn probe(
     profile: &crate::models::ProviderProfile,
     key: &str,
 ) -> Result<(), String> {
-    let response = client
-        .post(endpoint(&profile.base_url))
-        .bearer_auth(key)
-        .json(&json!({
-            "model": profile.model,
-            "messages": [{"role": "user", "content": "ping"}],
-            "max_tokens": 1,
-            "stream": false
-        }))
+    let mut request = client.post(endpoint(&profile.base_url)).json(&json!({
+        "model": profile.model,
+        "messages": [{"role": "user", "content": "ping"}],
+        "max_tokens": 1,
+        "stream": false
+    }));
+    if !key.is_empty() {
+        request = request.bearer_auth(key);
+    }
+    let response = request
         .timeout(std::time::Duration::from_secs(20))
         .send()
         .await
         .map_err(|e| e.to_string())?;
-    super::check_probe_response(response.status(), response.text().await.ok()).await
+    super::probe::check_response(response.status(), response.text().await.ok()).await
 }
 
 fn endpoint(base: &str) -> String {

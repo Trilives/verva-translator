@@ -69,6 +69,7 @@ pub fn run() {
             commands::secrets::save_api_key,
             commands::secrets::has_api_key,
             commands::secrets::delete_api_key,
+            commands::models::list_models,
             commands::translation::start_translation,
             commands::translation::cancel_translation,
             commands::history::list_history,

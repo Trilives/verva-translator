@@ -6,6 +6,7 @@ import { isTauri } from "./runtime";
 export const hasApiKey =(profileId: string) => isTauri() ? invoke<boolean>("has_api_key", { profileId }) : Promise.resolve(false);
 export const saveApiKey = (profileId: string, apiKey: string) => invoke<void>("save_api_key", { profileId, apiKey });
 export const deleteApiKey = (profileId: string) => invoke<void>("delete_api_key", { profileId });
+export const listModels = (profile: ProviderProfile) => isTauri() ? invoke<string[]>("list_models", { profile }) : Promise.resolve([]);
 export const cancelTranslation = (requestId: string) => invoke<void>("cancel_translation", { requestId });
 export const listHistory = () => isTauri() ? invoke<HistoryEntry[]>("list_history") : Promise.resolve([]);
 export const clearHistory = () => invoke<void>("clear_history");

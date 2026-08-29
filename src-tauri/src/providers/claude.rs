@@ -29,14 +29,14 @@ where
         body["thinking"] = json!({"type":"enabled","budget_tokens":2048});
         body["max_tokens"] = json!(6144);
     }
-    let response = client
+    let mut request = client
         .post(endpoint(&profile.base_url))
-        .header("x-api-key", key)
         .header("anthropic-version", "2023-06-01")
-        .json(&body)
-        .send()
-        .await
-        .map_err(|e| e.to_string())?;
+        .json(&body);
+    if !key.is_empty() {
+        request = request.header("x-api-key", key);
+    }
+    let response = request.send().await.map_err(|e| e.to_string())?;
     if !response
         .headers()
         .get(reqwest::header::CONTENT_TYPE)
@@ -74,21 +74,24 @@ pub async fn probe(
     profile: &crate::models::ProviderProfile,
     key: &str,
 ) -> Result<(), String> {
-    let response = client
+    let mut request = client
         .post(endpoint(&profile.base_url))
-        .header("x-api-key", key)
         .header("anthropic-version", "2023-06-01")
         .json(&json!({
             "model": profile.model,
             "messages": [{"role": "user", "content": "ping"}],
             "max_tokens": 1,
             "stream": false
-        }))
+        }));
+    if !key.is_empty() {
+        request = request.header("x-api-key", key);
+    }
+    let response = request
         .timeout(std::time::Duration::from_secs(20))
         .send()
         .await
         .map_err(|e| e.to_string())?;
-    super::check_probe_response(response.status(), response.text().await.ok()).await
+    super::probe::check_response(response.status(), response.text().await.ok()).await
 }
 
 fn endpoint(base: &str) -> String {

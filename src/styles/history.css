@@ -1,18 +1,24 @@
 /* ---- History ----------------------------------------------------------- */
 
 .history-count { color: var(--colorNeutralForeground3); font-size: 13px; }
-.history-list { flex: 1; min-height: 0; overflow-y: auto; display: grid; gap: 10px; align-content: start; padding-right: 4px; }
+.history-list { flex: 1; min-width: 0; min-height: 0; overflow-x: hidden; overflow-y: auto; display: grid; gap: 10px; align-content: start; padding-right: 4px; }
 .empty-note { margin: 0; color: var(--colorNeutralForeground3); }
 .history-item {
+  min-width: 0;
   padding: 14px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
   border: 1px solid var(--colorNeutralStroke2);
   border-radius: 12px;
   background: color-mix(in srgb, var(--colorNeutralBackground1) 88%, transparent);
 }
+.history-copy { min-width: 0; overflow-wrap: anywhere; }
 .history-item p { margin: 8px 0; }
-.history-meta { display: flex; justify-content: space-between; color: var(--colorNeutralForeground3); font-size: 12px; }
+.history-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; color: var(--colorNeutralForeground3); font-size: 12px; }
 .history-result { padding-top: 8px; border-top: 1px solid var(--colorNeutralStroke3); }
-.history-buttons { display: flex; justify-content: flex-end; gap: 8px; }
+.history-buttons { display: grid; gap: 8px; }
 
 
 .crash-screen { max-width: 520px; margin: 12vh auto; padding: 0 24px; font-family: "Segoe UI", sans-serif; }

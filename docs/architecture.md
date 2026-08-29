@@ -29,7 +29,7 @@ flowchart LR
   CMD --> VAULT["Stronghold vault"]
   VAULT --> KEYS["API keys"]
   VAULT --> HISTORY["History, max 100 entries"]
-  PROVIDERS -->|HTTPS + SSE| MODEL["User-configured model endpoint"]
+  PROVIDERS -->|HTTP(S) + SSE| MODEL["User-configured model endpoint"]
   CMD -->|translation-chunk events| UI
 ```
 
@@ -202,6 +202,7 @@ Registered commands:
 
 - `save_api_key`, `has_api_key`, `delete_api_key`
 - `start_translation`, `cancel_translation`
+- `list_models`
 - `test_profile`
 - `list_history`, `clear_history`
 - `install_mode`
@@ -259,8 +260,8 @@ API keys use Stronghold records keyed by stable profile UUIDs
 (`provider-key:<uuid>`). Keys never enter Store JSON, frontend state, or history.
 Deleting a profile also deletes its Stronghold record.
 
-Remote model URLs require HTTPS; plain HTTP is allowed only for `localhost`,
-`127.0.0.1`, and `::1`.
+Public model URLs require HTTPS; plain HTTP is allowed for loopback and private
+LAN IP addresses. API keys are optional for those local endpoints.
 
 Tauri capabilities are split by window; the frontend receives only the core
 window/event, store, updater, and process permissions it uses. Shell and

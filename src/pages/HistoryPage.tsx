@@ -12,13 +12,15 @@ function HistoryCard({ entry, onRestore }: { entry: HistoryEntry; onRestore: (en
   const copy = () => { navigator.clipboard.writeText(entry.translatedText); copied.trigger(); };
 
   return <article className="history-item">
-    <div className="history-meta">
-      {/* Stored entries keep canonical identifiers; only the display localizes. */}
-      <span>{language(entry.sourceLanguage)} → {language(entry.targetLanguage)}</span>
-      <time>{new Date(entry.createdAt).toLocaleString()}</time>
+    <div className="history-copy">
+      <div className="history-meta">
+        {/* Stored entries keep canonical identifiers; only the display localizes. */}
+        <span>{language(entry.sourceLanguage)} → {language(entry.targetLanguage)}</span>
+        <time>{new Date(entry.createdAt).toLocaleString()}</time>
+      </div>
+      <p>{entry.sourceText}</p>
+      <p className="history-result">{entry.translatedText}</p>
     </div>
-    <p>{entry.sourceText}</p>
-    <p className="history-result">{entry.translatedText}</p>
     <div className="history-buttons">
       <Button className="press" size="small" icon={<ArrowUndo16Regular />} onClick={() => onRestore(entry)}>{t("restore")}</Button>
       <Button className={`press copy-button ${copied.fired ? "fired" : ""}`} size="small"

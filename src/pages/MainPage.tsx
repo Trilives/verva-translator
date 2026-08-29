@@ -13,6 +13,7 @@ import { CustomStyleDialog } from "../components/CustomStyleDialog";
 import { UpdateDialog } from "../components/UpdateDialog";
 import { checkForUpdate, type UpdateResult } from "../services/updater";
 import { detectInstallMode } from "../services/backend";
+import { isLanBaseUrl } from "../domain/providerUrl";
 
 interface Props {
   settings: AppSettings;
@@ -32,6 +33,7 @@ export function MainPage({ settings, update, ui, patchUi, workspace, restored, o
   const [availableUpdate, setAvailableUpdate] = useState<UpdateResult>();
   const [portable, setPortable] = useState(false);
   const active = settings.profiles.find((p) => p.id === settings.activeProfileId) ?? settings.profiles[0];
+  const keyRequired = active && !isLanBaseUrl(active.baseUrl) && !active.hasApiKey;
   const contextWarning = translation.session && translation.session.usedTokens >= translation.session.limit / 2;
   const { source, target, customTarget, style, customStyles } = ui;
 
@@ -56,14 +58,14 @@ export function MainPage({ settings, update, ui, patchUi, workspace, restored, o
   const translate = useCallback(() => {
     // The button is disabled while streaming, but the shortcut still fires;
     // restarting here would discard the partial result.
-    if (!active?.hasApiKey || translation.busy) return;
+    if (!active || keyRequired || translation.busy) return;
     translation.start({
       profileId: active.id, sourceLanguage: source,
       targetLanguage: target === "Custom" ? customTarget : target, sourceText: input,
       ...stylePayload(style, customStyles),
       contextLimit: active.contextLimit, longConversation: active.longConversation
     });
-  }, [active, customStyles, customTarget, input, source, style, target, translation]);
+  }, [active, customStyles, customTarget, input, keyRequired, source, style, target, translation]);
 
   const copy = useCallback(() => { if (translation.output) navigator.clipboard.writeText(translation.output); }, [translation.output]);
   const shortcutActions = useMemo(() => ({ translate, clear: clearInput, copy }), [translate, clearInput, copy]);
@@ -108,7 +110,7 @@ export function MainPage({ settings, update, ui, patchUi, workspace, restored, o
       onProfile={(id) => update({ ...settings, activeProfileId: id })} onRefresh={translation.refreshSession} />
 
     <div className="message-stack">
-      {!active?.hasApiKey && <MessageBar intent="warning"><MessageBarBody>{t("keyRequired")}</MessageBarBody></MessageBar>}
+      {keyRequired && <MessageBar intent="warning"><MessageBarBody>{t("keyRequired")}</MessageBarBody></MessageBar>}
       {contextWarning && <MessageBar intent="warning"><MessageBarBody>{t("contextWarning")}</MessageBarBody></MessageBar>}
       {translation.error && <MessageBar intent="error"><MessageBarBody>{t("translationFailed")}: {translation.error}</MessageBarBody></MessageBar>}
     </div>

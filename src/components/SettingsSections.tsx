@@ -4,21 +4,21 @@ import type { AppSettings, CloseBehavior, UiLocale, UpdateChannel } from "../dom
 import { useI18n } from "../i18n/I18nContext";
 import { ShortcutRecorder } from "./ShortcutRecorder";
 
-type Update = (value: AppSettings) => Promise<void>;
+type Update = (value: AppSettings | ((settings: AppSettings) => AppSettings)) => Promise<void>;
 
 export function GeneralSection({ settings, update }: { settings: AppSettings; update: Update }) {
   const { t } = useI18n();
   return <div className="settings-stack">
     <section className="settings-card">
       <h2>{t("interfaceLanguage")}</h2>
-      <RadioGroup value={settings.locale} onChange={(_, d) => update({ ...settings, locale: d.value as UiLocale })}>
+      <RadioGroup value={settings.locale} onChange={(_, d) => update((current) => ({ ...current, locale: d.value as UiLocale }))}>
         <Radio value="en" label={t("english")} />
         <Radio value="zh-CN" label={t("chinese")} />
       </RadioGroup>
     </section>
     <section className="settings-card">
       <h2>{t("appearance")}</h2>
-      <RadioGroup value={settings.theme} onChange={(_, d) => update({ ...settings, theme: d.value as AppSettings["theme"] })}>
+      <RadioGroup value={settings.theme} onChange={(_, d) => update((current) => ({ ...current, theme: d.value as AppSettings["theme"] }))}>
         <Radio value="system" label={t("system")} />
         <Radio value="light" label={t("light")} />
         <Radio value="dark" label={t("dark")} />
@@ -27,7 +27,7 @@ export function GeneralSection({ settings, update }: { settings: AppSettings; up
     <section className="settings-card">
       <h2>{t("closeBehavior")}</h2>
       <RadioGroup value={settings.closeBehavior}
-        onChange={(_, d) => update({ ...settings, closeBehavior: d.value as CloseBehavior })}>
+        onChange={(_, d) => update((current) => ({ ...current, closeBehavior: d.value as CloseBehavior }))}>
         <Radio value="ask" label={t("closeAsk")} />
         <Radio value="tray" label={t("minimizeToTray")} />
         <Radio value="exit" label={t("quitApp")} />
@@ -42,14 +42,14 @@ export function UpdatesSection({ settings, update, status, onCheck }: { settings
   return <div className="settings-stack">
     <section className="settings-card">
       <h2>{t("updates")}</h2>
-      <RadioGroup value={settings.updateMode} onChange={(_, d) => update({ ...settings, updateMode: d.value as AppSettings["updateMode"] })}>
+      <RadioGroup value={settings.updateMode} onChange={(_, d) => update((current) => ({ ...current, updateMode: d.value as AppSettings["updateMode"] }))}>
         <Radio value="automatic" label={t("automatic")} />
         <Radio value="manual" label={t("manual")} />
       </RadioGroup>
     </section>
     <section className="settings-card">
       <h2>{t("channel")}</h2>
-      <RadioGroup value={settings.updateChannel} onChange={(_, d) => update({ ...settings, updateChannel: d.value as UpdateChannel })}>
+      <RadioGroup value={settings.updateChannel} onChange={(_, d) => update((current) => ({ ...current, updateChannel: d.value as UpdateChannel }))}>
         <Radio value="stable" label={t("stable")} />
         <Radio value="beta" label={t("beta")} />
       </RadioGroup>
@@ -67,7 +67,7 @@ const SHORTCUT_DEFAULTS = { translate: "Ctrl+Enter", clear: "Ctrl+L", copy: "Ctr
 export function ShortcutsSection({ settings, update }: { settings: AppSettings; update: Update }) {
   const { t } = useI18n();
   const set = (key: keyof AppSettings["shortcuts"], value: string) =>
-    update({ ...settings, shortcuts: { ...settings.shortcuts, [key]: value } });
+    update((current) => ({ ...current, shortcuts: { ...current.shortcuts, [key]: value } }));
   return <div className="settings-stack">
     <section className="settings-card">
       <h2>{t("shortcuts")}</h2>
