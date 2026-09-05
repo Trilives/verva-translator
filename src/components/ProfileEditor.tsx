@@ -6,9 +6,11 @@ import {
   DismissCircle20Filled, PlugConnected20Regular
 } from "@fluentui/react-icons";
 import { useEffect, useState } from "react";
-import type { ProviderProfile } from "../domain/types";
+import type { ProviderProfile, ThinkingLevel } from "../domain/types";
+import { thinkingLevels } from "../domain/catalogs";
 import { isAllowedProviderUrl, isLanBaseUrl } from "../domain/providerUrl";
 import { listModels, testProfile, type ConnectionReport } from "../services/backend";
+import { thinkingLevelKeys } from "../i18n/messages";
 import { useI18n } from "../i18n/I18nContext";
 
 interface Props {
@@ -97,10 +99,14 @@ export function ProfileEditor(props: Props) {
         <Input type="number" min={1024} value={String(profile.contextLimit)}
           onChange={(_, d) => props.onChange({ contextLimit: Math.max(1024, Number(d.value) || 1024) })} />
       </Field>
+      <Field label={t("thinking")}>
+        <Select value={profile.thinking} onChange={(_, d) => props.onChange({ thinking: d.value as ThinkingLevel })}>
+          {thinkingLevels.map((level) => <option key={level} value={level}>{t(thinkingLevelKeys[level])}</option>)}
+        </Select>
+      </Field>
     </div>
 
     <div className="switch-list">
-      <Switch checked={profile.thinking} label={t("thinking")} onChange={(_, d) => props.onChange({ thinking: d.checked })} />
       <div>
         <Switch checked={profile.longConversation} label={t("longConversation")}
           onChange={(_, d) => props.onChange({ longConversation: d.checked })} />

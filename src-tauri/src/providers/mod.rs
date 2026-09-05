@@ -105,7 +105,7 @@ mod stream_tests {
             kind: ProviderKind::Openai,
             base_url,
             model: "mock-model".into(),
-            thinking: false,
+            thinking: crate::models::ThinkingLevel::Off,
             long_conversation: false,
             context_limit: 128_000,
         }

@@ -178,7 +178,7 @@ would otherwise be re-minted on every launch. A selection naming a tone that no
 longer exists falls back to the first builtin.
 
 Settings owns profiles, provider interface, base URL, model, secret entry,
-thinking mode, long conversation, context limit, updates, shortcuts, and UI
+thinking level, long conversation, context limit, updates, shortcuts, and UI
 language.
 
 The history dialog shows the latest 100 translations; restored results remain
@@ -226,7 +226,7 @@ provider-neutral `StreamRequest` and support:
 - OpenAI-compatible `POST /chat/completions`
 - Claude-compatible `POST /v1/messages`
 - SSE streaming with ordinary JSON fallback
-- thinking-mode fields only when enabled
+- thinking-mode fields only when the level is above off
 
 The model is instructed to emit `[[LANGUAGE:name]]` on the first line;
 `ProtocolDecoder` strips that marker and reports the detected language.
@@ -286,7 +286,8 @@ streaming error path. These are intended, not implemented.
 ## 7. Preferences and profiles
 
 Profiles have stable UUIDs and contain name, provider kind, base URL, model,
-thinking flag, long-conversation flag, and context limit. The active profile ID
+thinking level (off/low/medium/high), long-conversation flag, and context limit.
+The active profile ID
 is stored separately.
 
 ## 8. Localization

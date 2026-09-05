@@ -1,4 +1,4 @@
-import type { UiLocale } from "../domain/types";
+import type { ThinkingLevel, UiLocale } from "../domain/types";
 
 const en = {
   appName: "Verva Translate", workspace: "Workspace", translateWorkspace: "Translate with clarity",
@@ -28,6 +28,7 @@ const en = {
   modelsFound: "Found {count} models.", noModelsFound: "No models were returned; you can enter one manually.",
   modelRefreshFailed: "Could not refresh models", savedAutomatically: "Changes save automatically",
   openAi: "OpenAI compatible", claude: "Claude compatible", thinking: "Thinking mode",
+  thinkingLevel: "Thinking", thinkingOff: "Off", thinkingLow: "Low", thinkingMedium: "Medium", thinkingHigh: "High",
   longConversation: "Long conversation", longConversationHint: "Uses more tokens, but keeps context for more accurate multi-round translation.",
   interfaceLanguage: "Interface language", english: "English", chinese: "简体中文",
   appearance: "Appearance", system: "System", light: "Light", dark: "Dark",
@@ -80,7 +81,9 @@ const zh: typeof en = {
   modelHint: "可选择已发现的模型，也可手动输入模型名称。", refreshModels: "刷新模型列表",
   modelsFound: "已发现 {count} 个模型。", noModelsFound: "接口未返回模型；您仍可手动输入。",
   modelRefreshFailed: "无法刷新模型列表", savedAutomatically: "更改会自动保存",
-  thinking: "思考模式", longConversation: "长会话",
+  thinking: "思考模式",
+  thinkingLevel: "思考", thinkingOff: "关闭", thinkingLow: "低", thinkingMedium: "中", thinkingHigh: "高",
+  longConversation: "长会话",
   longConversationHint: "会消耗更多 Token，但可保留上下文，使多轮翻译更准确。",
   interfaceLanguage: "界面语言", english: "English", chinese: "简体中文",
   appearance: "外观", system: "跟随系统", light: "浅色", dark: "深色",
@@ -109,3 +112,8 @@ const zh: typeof en = {
 
 export type MessageKey = keyof typeof en;
 export const messages: Record<UiLocale, typeof en> = { en, "zh-CN": zh };
+
+/** Dictionary key holding the label for each thinking level. */
+export const thinkingLevelKeys: Record<ThinkingLevel, MessageKey> = {
+  off: "thinkingOff", low: "thinkingLow", medium: "thinkingMedium", high: "thinkingHigh"
+};

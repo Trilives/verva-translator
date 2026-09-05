@@ -25,9 +25,11 @@ where
     }
     messages.push(json!({"role":"user","content":prompt}));
     let mut body = json!({"model":profile.model,"system":system,"messages":messages,"max_tokens":4096,"stream":true});
-    if profile.thinking {
-        body["thinking"] = json!({"type":"enabled","budget_tokens":2048});
-        body["max_tokens"] = json!(6144);
+    if let Some(budget) = profile.thinking.claude_budget() {
+        body["thinking"] = json!({"type":"enabled","budget_tokens":budget});
+        // max_tokens must exceed the thinking budget; keep the same 4096 for the
+        // reply on top of whatever the chosen level spends on reasoning.
+        body["max_tokens"] = json!(4096 + budget);
     }
     let mut request = client
         .post(endpoint(&profile.base_url))

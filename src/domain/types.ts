@@ -1,6 +1,8 @@
 export type UiLocale = "en" | "zh-CN";
 export type ProviderKind = "openai" | "claude";
 export type UpdateChannel = "stable" | "beta";
+/** How much reasoning to request from the model. */
+export type ThinkingLevel = "off" | "low" | "medium" | "high";
 export type BuiltinStyle = "natural" | "conversation" | "business" | "command";
 
 /** A builtin style key, or the id of a user-defined style. */
@@ -19,7 +21,7 @@ export interface ProviderProfile {
   kind: ProviderKind;
   baseUrl: string;
   model: string;
-  thinking: boolean;
+  thinking: ThinkingLevel;
   longConversation: boolean;
   contextLimit: number;
   hasApiKey?: boolean;

@@ -107,7 +107,11 @@ export function MainPage({ settings, update, ui, patchUi, workspace, restored, o
   return <div className="workspace">
     <MainHeader profiles={settings.profiles} activeId={settings.activeProfileId}
       session={active?.longConversation ? translation.session : undefined}
-      onProfile={(id) => update({ ...settings, activeProfileId: id })} onRefresh={translation.refreshSession} />
+      onProfile={(id) => update({ ...settings, activeProfileId: id })}
+      onThinking={(level) => update((s) => ({
+        ...s, profiles: s.profiles.map((p) => (p.id === s.activeProfileId ? { ...p, thinking: level } : p))
+      }))}
+      onRefresh={translation.refreshSession} />
 
     <div className="message-stack">
       {keyRequired && <MessageBar intent="warning"><MessageBarBody>{t("keyRequired")}</MessageBarBody></MessageBar>}

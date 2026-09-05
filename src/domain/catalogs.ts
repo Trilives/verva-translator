@@ -1,4 +1,7 @@
-import type { BuiltinStyle, CustomStyle, TranslationStyle } from "./types";
+import type { BuiltinStyle, CustomStyle, ThinkingLevel, TranslationStyle } from "./types";
+
+/** Selectable reasoning levels, ordered from least to most effort. */
+export const thinkingLevels: ThinkingLevel[] = ["off", "low", "medium", "high"];
 
 export const languages = [
   "Auto Detect", "English", "Chinese (Simplified)", "Chinese (Traditional)",
@@ -41,7 +44,7 @@ export const defaultProfile = () => ({
   kind: "openai" as const,
   baseUrl: "https://api.openai.com/v1",
   model: "gpt-4.1-mini",
-  thinking: false,
+  thinking: "off" as ThinkingLevel,
   longConversation: false,
   contextLimit: 128000,
   hasApiKey: false

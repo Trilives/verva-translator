@@ -26,8 +26,8 @@ where
     }
     messages.push(json!({"role":"user","content":prompt}));
     let mut body = json!({"model":profile.model,"messages":messages,"stream":true});
-    if profile.thinking {
-        body["reasoning_effort"] = json!("medium");
+    if let Some(effort) = profile.thinking.openai_effort() {
+        body["reasoning_effort"] = json!(effort);
     }
     let mut request = client.post(endpoint).json(&body);
     if !key.is_empty() {

@@ -1,9 +1,32 @@
 import { load } from "@tauri-apps/plugin-store";
-import { defaultProfile } from "../domain/catalogs";
-import type { AppSettings } from "../domain/types";
+import { defaultProfile, thinkingLevels } from "../domain/catalogs";
+import type { AppSettings, ThinkingLevel } from "../domain/types";
 import { isTauri } from "./runtime";
 
 const key = "app-settings";
+
+/**
+ * Folds a stored `thinking` value into the graduated form. Older builds wrote a
+ * plain on/off flag; `true` requested the budget that "medium" now names, so it
+ * maps there rather than to the highest level.
+ */
+function normalizeThinking(value: unknown): ThinkingLevel {
+  if (value === true) return "medium";
+  if (typeof value === "string" && (thinkingLevels as string[]).includes(value)) {
+    return value as ThinkingLevel;
+  }
+  return "off";
+}
+
+/** Applies field-level migrations that a shallow default spread cannot. */
+function normalize(settings: AppSettings): AppSettings {
+  return {
+    ...settings,
+    profiles: settings.profiles.map((profile) => ({
+      ...profile, thinking: normalizeThinking(profile.thinking)
+    }))
+  };
+}
 export const defaultSettings = (): AppSettings => {
   const profile = defaultProfile();
   return {
@@ -16,12 +39,12 @@ export const defaultSettings = (): AppSettings => {
 export async function loadSettings(): Promise<AppSettings> {
   if (!isTauri()) {
     const raw = localStorage.getItem(key);
-    return raw ? { ...defaultSettings(), ...JSON.parse(raw) } : defaultSettings();
+    return raw ? normalize({ ...defaultSettings(), ...JSON.parse(raw) }) : defaultSettings();
   }
   const store = await load("settings.json", { autoSave: 150, defaults: {} });
   // Spread over the defaults so settings written by an older version gain any
   // newly added field instead of arriving undefined.
-  return { ...defaultSettings(), ...(await store.get<Partial<AppSettings>>(key)) };
+  return normalize({ ...defaultSettings(), ...(await store.get<Partial<AppSettings>>(key)) });
 }
 
 export async function saveSettings(settings: AppSettings) {
