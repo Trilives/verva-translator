@@ -21,7 +21,7 @@ Settings: configurations are a list; selecting one opens the full editor with a 
 ## Highlights
 
 - OpenAI-compatible and Claude-compatible streaming APIs; no demo engine or bundled model.
-- Multiple named configurations with fast switching, encrypted API keys, optional thinking, and optional long conversations.
+- Multiple named configurations with fast switching, encrypted API keys, an adjustable thinking level, and optional long conversations.
 - Natural, Conversation, Business, Command, and user-authored Custom styles.
 - Automatic source-language detection that remains visibly separate from the Auto Detect selector and participates correctly in language swapping.
 - Major target languages plus a final Custom option for any language supported by the chosen model.
@@ -47,7 +47,7 @@ Verva requires an AI-compatible API. Custom language support, thinking mode, out
 2. Add a configuration, or select one to expand it.
 3. Choose **OpenAI compatible** or **Claude compatible**.
 4. Enter its Base URL and select or type a model name. Public endpoints require HTTPS; localhost and private LAN addresses may use HTTP and do not require an API key.
-5. Optionally enable Thinking mode or Long conversation.
+5. Optionally set a thinking level or enable Long conversation.
 6. Changes save automatically. Use **Test connection** to confirm the endpoint answers.
 7. Return to the workspace and pick the configuration from the header.
 

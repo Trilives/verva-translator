@@ -14,7 +14,7 @@ const initial: AppSettings = {
   locale: "en", theme: "system", closeBehavior: "ask", updateMode: "manual", updateChannel: "stable",
   activeProfileId: "profile-1",
   profiles: [{ id: "profile-1", name: "Local", kind: "openai", baseUrl: "http://127.0.0.1:11434/v1",
-    model: "local-model", thinking: false, longConversation: false, contextLimit: 8192, hasApiKey: false }],
+    model: "local-model", thinking: "off", longConversation: false, contextLimit: 8192, hasApiKey: false }],
   shortcuts: { translate: "Ctrl+Enter", clear: "Ctrl+L", copy: "Ctrl+Shift+C" }
 };
 
