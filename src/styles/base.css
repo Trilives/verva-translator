@@ -75,11 +75,14 @@ body > .fui-FluentProvider { min-width: 0; min-height: 0; height: auto; backgrou
 .page-header, .main-header, .style-block, .message-stack { flex: none; }
 .page-header, .main-header { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
 .header-tools { display: flex; gap: 12px; align-items: center; }
-.header-switchers { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
-/* Compact, self-labelling switches: the shown value (profile, model, level)
-   says what each one is, and a tooltip carries the caption for the rest. */
-.header-dropdown { min-width: 128px; max-width: 200px; }
-.header-dropdown.thinking { min-width: 96px; }
+.header-switchers { display: flex; gap: 6px; align-items: center; flex-wrap: nowrap; justify-content: flex-end; min-width: 0; }
+/* Compact, self-labelling switches kept on one line: the shown value (profile,
+   model, level) says what each is, a tooltip carries the caption, and a long
+   name ellipsises inside its box rather than widening the row. The descendant
+   selector outranks Fluent's built-in 250px min-width on the dropdown. */
+.header-switchers .header-dropdown { min-width: 0; width: 128px; max-width: 128px; }
+.header-switchers .header-dropdown.thinking { width: 84px; max-width: 84px; }
+.header-switchers .header-dropdown button { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .session-chip { min-width: 210px; padding: 8px 10px; display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center; border: 1px solid var(--colorNeutralStroke2); border-radius: 10px; background: var(--colorNeutralBackground1); }
 .session-chip > div { display: flex; gap: 7px; font-size: 12px; }
 .session-chip [role="progressbar"] { grid-column: 1; }
