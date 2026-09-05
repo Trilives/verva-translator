@@ -11,8 +11,10 @@ describe("translation catalogs", () => {
    * The fixed Custom card became user-defined styles. A builtin named "custom"
    * would now collide with a style id, so it must not come back.
    */
-  it("ships four builtin tones and no Custom placeholder", () => {
-    expect(builtinStyles).toEqual(["natural", "conversation", "business", "command"]);
+  it("ships the builtin tones, led by the unrestricted one, and no Custom placeholder", () => {
+    expect(builtinStyles).toEqual(["normal", "natural", "conversation", "business", "command", "professional"]);
+    // "normal" is the no-restrictions tone and leads the row.
+    expect(builtinStyles[0]).toBe("normal");
     expect(builtinStyles).not.toContain("custom");
   });
 
@@ -40,6 +42,16 @@ describe("style payload sent to the backend", () => {
 
   it("sends a builtin by key with no requirements", () => {
     expect(stylePayload("business", [academic])).toEqual({ style: "business", customStyle: "" });
+  });
+
+  it("sends the normal tone with no restrictions", () => {
+    expect(stylePayload("normal", [academic])).toEqual({ style: "normal", customStyle: "" });
+  });
+
+  it("sends the professional tone's vocabulary constraint as its requirements", () => {
+    expect(stylePayload("professional", [academic])).toEqual({
+      style: "professional", customStyle: "Use more professional vocabulary."
+    });
   });
 
   it("never leaks a style id into the prompt", () => {
