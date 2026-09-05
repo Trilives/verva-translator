@@ -20,9 +20,6 @@
   .page-header h1, .main-header h1 { font-size: 17px; }
   .main-header { align-items: center; }
   .header-tools { flex-direction: row; align-items: center; }
-  /* The dropdown carries its own aria-label, so dropping the caption costs
-     nothing but the pixels. */
-  .profile-control > span, .thinking-control > span { display: none; }
   .style-block { grid-template-columns: auto minmax(0, 1fr); padding: 8px 12px; gap: 10px; }
   /* Kept, not hidden: it is the only readout of context usage. */
   .session-chip { min-width: 150px; padding: 4px 8px; }
