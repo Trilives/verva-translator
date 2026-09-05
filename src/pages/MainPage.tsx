@@ -108,6 +108,9 @@ export function MainPage({ settings, update, ui, patchUi, workspace, restored, o
     <MainHeader profiles={settings.profiles} activeId={settings.activeProfileId}
       session={active?.longConversation ? translation.session : undefined}
       onProfile={(id) => update({ ...settings, activeProfileId: id })}
+      onModel={(model) => update((s) => ({
+        ...s, profiles: s.profiles.map((p) => (p.id === s.activeProfileId ? { ...p, model } : p))
+      }))}
       onThinking={(level) => update((s) => ({
         ...s, profiles: s.profiles.map((p) => (p.id === s.activeProfileId ? { ...p, thinking: level } : p))
       }))}
