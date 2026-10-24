@@ -29,20 +29,26 @@
 .file-pick, .image-model-label { display: grid; gap: 5px; font-size: 12px; color: var(--colorNeutralForeground2); }
 .file-pick input, .image-model-label select { max-width: min(290px, 100%); min-height: 32px; color: var(--colorNeutralForeground1); }
 .image-model-label select { border: 1px solid var(--colorNeutralStroke1); border-radius: 5px; background: var(--colorNeutralBackground1); padding: 4px 8px; }
-.image-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; min-height: 300px; }
-.image-panel { display: flex; flex-direction: column; gap: 10px; min-height: 300px; }
+.image-grid { flex: none; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; height: clamp(440px, 67vh, 760px); }
+.image-panel { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
 .image-panel h2, .image-result h2 { margin: 0; font-size: 14px; }
-.image-panel img { width: 100%; max-height: 500px; object-fit: contain; align-self: start; }
-.image-panel .fui-Textarea { flex: 1; min-height: 150px; }
-.image-panel .fui-Textarea textarea { height: 100%; }
+.image-preview-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.image-zoom-controls { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--colorNeutralForeground2); }
+.image-zoom-controls span { min-width: 38px; text-align: center; }
+.image-preview-viewport { flex: 1; min-height: 0; min-width: 0; overflow: auto; border: 1px solid var(--colorNeutralStroke2); border-radius: 7px; background: var(--colorNeutralBackground1); }
+.image-preview-viewport img { display: block; height: auto; max-width: none; max-height: none; margin-inline: auto; }
+.image-preview-viewport .empty-note { padding: 12px; }
+.image-text-editor { flex: 1; min-width: 0; min-height: 120px; width: 100%; padding: 10px 12px; overflow: auto; resize: none; border: 1px solid var(--colorNeutralStroke1); border-radius: 5px; background: var(--colorNeutralBackground1); color: var(--colorNeutralForeground1); font: 14px/1.55 "Segoe UI Variable", "Segoe UI", sans-serif; }
+.image-text-editor:focus-visible { outline: 2px solid var(--colorBrandStroke1); outline-offset: -2px; }
 .image-translate-controls { display: flex; align-items: end; flex-wrap: wrap; gap: 10px; }
 .image-translate-controls .language-select { min-width: 165px; }
 .image-translate-controls .native-input { max-width: 180px; }
-.image-result { display: grid; gap: 10px; }
-.image-result .fui-Textarea textarea { min-height: 130px; }
+.image-result { flex: none; display: grid; gap: 10px; }
+.image-result .image-text-editor { flex: none; height: clamp(180px, 35vh, 420px); }
 .image-result button { justify-self: end; }
 @media (max-width: 900px) {
-  .image-grid { grid-template-columns: minmax(0, 1fr); }
+  .image-grid { height: auto; grid-template-columns: minmax(0, 1fr); }
+  .image-panel { height: clamp(400px, 65vh, 700px); }
   .local-card { grid-template-columns: minmax(0, 1fr); }
   .local-actions { justify-content: flex-start; }
 }

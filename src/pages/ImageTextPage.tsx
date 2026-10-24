@@ -1,4 +1,4 @@
-import { Button, MessageBar, MessageBarBody, Spinner, Textarea } from "@fluentui/react-components";
+import { Button, MessageBar, MessageBarBody, Spinner } from "@fluentui/react-components";
 import { useEffect, useState } from "react";
 import { stylePayload } from "../domain/catalogs";
 import { isLanBaseUrl } from "../domain/providerUrl";
@@ -30,6 +30,7 @@ export function ImageTextPage({ settings, update, ui, patchUi, workspace }: Prop
   const { t } = useI18n();
   const [file, setFile] = useState<File>();
   const [preview, setPreview] = useState("");
+  const [zoom, setZoom] = useState(100);
   const [recognized, setRecognized] = useState("");
   const [hasTranslated, setHasTranslated] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -51,6 +52,7 @@ export function ImageTextPage({ settings, update, ui, patchUi, workspace }: Prop
     if (!["image/png", "image/jpeg", "image/webp"].includes(next.type) || next.size > 12 * 1024 * 1024) {
       setError(t("imageFormatError")); return;
     }
+    setZoom(100);
     setFile(next);
   };
 
@@ -66,7 +68,7 @@ export function ImageTextPage({ settings, update, ui, patchUi, workspace }: Prop
     if (!recognized.trim() || !active || needsKey || translation.busy) return;
     workspace.setInput(recognized);
     setHasTranslated(true);
-    translation.start({ profileId: active.id, sourceLanguage: "Auto Detect",
+    void translation.start({ profileId: active.id, sourceLanguage: "Auto Detect",
       targetLanguage: ui.target === "Custom" ? ui.customTarget : ui.target,
       sourceText: recognized, ...stylePayload(ui.style, ui.customStyles),
       contextLimit: active.contextLimit, longConversation: active.longConversation });
@@ -82,11 +84,22 @@ export function ImageTextPage({ settings, update, ui, patchUi, workspace }: Prop
       <Button appearance="primary" disabled={!file || busy} onClick={() => void extract()}>{busy ? <Spinner size="tiny" /> : t("extractText")}</Button>
     </div>
     <div className="image-grid">
-      <section className="image-panel"><h2>{t("imagePreview")}</h2>
-        {preview ? <img src={preview} alt={file?.name ?? ""} /> : <p className="empty-note">{t("noImage")}</p>}
+      <section className="image-panel">
+        <div className="image-preview-header"><h2>{t("imagePreview")}</h2>
+          {preview && <div className="image-zoom-controls" role="group" aria-label={t("imageZoom")}>
+            <Button size="small" aria-label={t("zoomOut")} disabled={zoom <= 50} onClick={() => setZoom((value) => Math.max(50, value - 25))}>−</Button>
+            <span aria-live="polite">{zoom}%</span>
+            <Button size="small" aria-label={t("zoomIn")} disabled={zoom >= 300} onClick={() => setZoom((value) => Math.min(300, value + 25))}>+</Button>
+            <Button size="small" onClick={() => setZoom(100)}>{t("fitWidth")}</Button>
+          </div>}
+        </div>
+        <div className="image-preview-viewport">
+          {preview ? <img src={preview} alt={file?.name ?? ""} style={{ width: `${zoom}%` }} /> : <p className="empty-note">{t("noImage")}</p>}
+        </div>
       </section>
       <section className="image-panel"><h2>{t("recognizedText")}</h2>
-        <Textarea resize="none" value={recognized} onChange={(_, data) => { setRecognized(data.value); setHasTranslated(false); }} placeholder={t("ocrResultPlaceholder")} />
+        <textarea className="image-text-editor" aria-label={t("recognizedText")} value={recognized}
+          onChange={(event) => { setRecognized(event.currentTarget.value); setHasTranslated(false); }} placeholder={t("ocrResultPlaceholder")} />
         <div className="image-translate-controls">
           <label className="image-model-label">{t("profile")}
             <select value={settings.activeProfileId} onChange={(e) => void update((s) => ({ ...s, activeProfileId: e.target.value }))}>
@@ -104,7 +117,8 @@ export function ImageTextPage({ settings, update, ui, patchUi, workspace }: Prop
       </section>
     </div>
     {hasTranslated && <section className="image-result"><h2>{t("translatedText")}</h2>
-      <Textarea resize="none" value={translation.output} onChange={(_, data) => translation.setOutput(data.value)} />
+      <textarea className="image-text-editor" aria-label={t("translatedText")} value={translation.output}
+        onChange={(event) => translation.setOutput(event.currentTarget.value)} />
       <Button disabled={!translation.output} onClick={() => void navigator.clipboard.writeText(translation.output)}>{t("copy")}</Button>
     </section>}
   </div>;
