@@ -20,14 +20,14 @@ Verva Translate 是一款面向 Windows 的“自带 AI 接口”翻译工具。
 
 ## 主要功能
 
-- 支持兼容 OpenAI 与兼容 Claude 的流式接口；不提供演示引擎，也不捆绑模型。
+- 支持兼容 OpenAI 与兼容 Claude 的流式接口；翻译使用自行选择的端点与模型。
 - 可保存并快速切换多套配置；API 密钥加密保存；每套配置可独立设置思考等级并开启长会话。
 - 本地模型页通过 Ollama 下载、装载和卸载翻译模型，并可一键将已安装模型设为翻译配置。默认推荐 Qwen3.5 4B（通用）和 TranslateGemma 4B（翻译专用）；大模型仅适合内存或显存充足的设备。
-- 图片转文字页使用 PP-OCRv6 Small 在本机 CPU 识别中文和英文，首次使用下载轻量模型文件；识别结果可编辑，并可选择是否翻译。OCR 不需要 Ollama。
-- 提供自然、日常对话、商务、命令下达和用户自定义风格。
-- 自动识别源语言，但不会替换“自动检测”选择框；检测结果显示在旁边，并可正确参与语言交换。
+- 图片转文字页使用 PP-OCRv6 Small 在本机 CPU 识别中文和英文，首次使用下载轻量模型文件。长图按预览区宽度显示，可独立滚动和缩放；识别结果可编辑，也可选择翻译。
+- 提供普通、自然、日常对话、商务、命令下达、专业和用户自定义风格。
+- 每次启动软件时，源语言设为“自动检测”；切换应用内页面时保留当前选择。中间的交换按钮会同时交换语言、原文和译文，方便反向翻译。
 - 内置主要目标语言，列表末尾提供“自定义”，可输入模型支持的其他语言。
-- 译文支持流式显示和直接编辑；翻译时按钮变为停止；复制和带边框的清空按钮醒目可见；快捷键可配置。
+- 译文支持流式显示和直接编辑；停止与复制位于译文区，清空位于原文区；快捷键可配置。
 - 设置与历史记录均为应用内页面，不再额外开窗；可在应用内切换英语或简体中文界面。
 - 每套配置都可测试连接，翻译前即可确认基础 URL、模型与密钥是否可用。
 - 关闭窗口时可最小化到通知区域、直接退出，或每次询问。
@@ -41,11 +41,11 @@ Verva Translate 是一款面向 Windows 的“自带 AI 接口”翻译工具。
 - `Verva-Translate-<版本>-windows-x64-setup.exe`：推荐使用。安装程序提供语言选择、可选安装位置、进度显示、快捷方式和卸载支持。
 - `Verva-Translate-<版本>-windows-x64-portable.exe`：便携版。它只提示更新，不会自动替换自身。
 
-Verva 必须连接可用的 AI 兼容接口。自定义语言、思考模式、译文质量和费用都取决于所选服务与模型。对于短文本，按照当前服务商价格，使用 `deepseek-v4-flash` 翻译一次可能低于 0.01 美元；实际费用会随文本长度、会话历史、推理、缓存和后续价格变化。
+翻译需要可用的 AI 兼容端点，本地模型可通过 Ollama 提供。自定义语言、思考模式、译文质量及服务商收费均取决于所选模型。
 
 ## 配置模型
 
-若希望完全在本机翻译，可先安装并启动 [Ollama for Windows](https://ollama.com/download/windows)，再到应用内的**本地模型**页下载模型，点击“运行模型”和“用于翻译”。模型文件通常以 GB 计；运行时所需内存会高于下载体积，建议先试 4B 档。图片转文字使用独立的轻量 OCR 引擎，无需安装 Ollama。
+若希望在本机翻译，请先安装并启动 [Ollama for Windows](https://ollama.com/download/windows)，再到**本地模型**页下载推荐的 4B 模型，点击“运行模型”和“用于翻译”。较大的模型需要更多内存或显存。五档模型与 benchmark 依据见[模型和 OCR 选型](docs/local-models-and-ocr.md)。OCR 无需 Ollama。
 
 1. 从左侧栏打开**设置**。
 2. 新增一套配置，或点击列表中的配置将其展开。
@@ -93,6 +93,6 @@ npm run tauri -- build
 
 ## 项目结构与发布
 
-前端位于 `src/`，使用 React、TypeScript 和 Fluent UI React v9；Rust/Tauri 核心位于 `src-tauri/`；架构、文件拆分规则和执行清单位于 `docs/`。
+前端位于 `src/`，包含工作区、本地模型、图片转文字、历史和设置页面；Rust/Tauri 核心位于 `src-tauri/`；架构与文件拆分规则位于 `docs/`。
 
-请先阅读 [architecture.md](docs/architecture.md)、[modularization.md](docs/modularization.md) 和[产品介绍](docs/introduction.md)。GitHub Actions 需要配置 `TAURI_SIGNING_PRIVATE_KEY` 与 `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` 仓库密钥，之后即可选择 stable 或 beta 流水线，生成带版本号的便携版、安装程序、哈希文件和签名更新清单。
+结构性修改前请阅读 [architecture.md](docs/architecture.md) 和 [modularization.md](docs/modularization.md)。GitHub Actions 需要配置 `TAURI_SIGNING_PRIVATE_KEY` 与 `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` 仓库密钥，之后可选择 stable 或 beta 流水线生成便携版、安装程序、校验文件和签名更新清单。

@@ -58,7 +58,8 @@ src-tauri/src/
 
 - Components render; hooks orchestrate; services invoke Rust.
 - No component constructs provider JSON or handles an API key.
-- Fluent UI v9 components are preferred over hand-built controls.
+- Fluent UI v9 components are preferred. A native textarea is used where the
+  Fluent wrapper prevents a scrollable editor from filling its panel.
 - Dialog state belongs to the feature that owns the dialog.
 - A list item selection and an edit action are separate interactions. A tone
   bubble may be selected without opening its editor.
@@ -78,9 +79,10 @@ tokens (`var(--colorNeutralBackground1)` and friends). Griffel `makeStyles` is
 styles become necessary, migrate to Griffel deliberately rather than mixing
 approaches.
 
-The sheets are `base`, `workspace`, `dialogs`, `settings`, `history`, and
-`responsive`. They are imported individually from `main.tsx`, and **cascade
-order is import order**, so `base` stays first and `responsive` stays last —
+The sheets are `base`, `workspace`, `dialogs`, `settings`, `history`,
+`local-features`, and `responsive`. They are imported individually from
+`main.tsx`, and **cascade order is import order**, so `base` stays first and
+`responsive` stays last —
 its media queries share specificity with the rules they override.
 
 Do **not** compose them with CSS `@import` from a manifest sheet. Vite's dev
@@ -158,7 +160,7 @@ Treat these as required for any change that touches provider error handling.
   `architecture.md` for why Fluent squeezes them by default.
 - Tone and style is a block above the panes; each language selector sits on the
   pane it applies to.
-- The tone row is four builtins, then up to four user-defined tones, then Add,
+- The tone row is six builtins, then up to four user-defined tones, then Add,
   which disappears at the cap. The row scrolls sideways and never wraps.
 - Switching pages preserves the source text and the streaming result.
 - Clear input is at the bottom left of the input pane and Translate at its
@@ -180,8 +182,13 @@ Treat these as required for any change that touches provider error handling.
 - Auto Detect remains selected after detection.
 - The detected language is shown beside Auto Detect and stored only for the
   current source text.
-- Swap consumes the stored detected language; editing or clearing the source
-  invalidates it.
+- Each app launch resets the source selector to Auto Detect; page navigation
+  preserves the current selection.
+- Swap exchanges source/result text as well as language direction. It uses a
+  recognized detected language when available and is disabled while streaming.
+  Editing or clearing the source invalidates the previous detection.
+- Image preview fills the available width, scrolls within its own panel, and
+  supports zoom; translation results must not shrink the OCR panels.
 - Long-conversation state is memory-only and warns at 50%.
 - UI language changes preserve current work.
 - A render failure shows the `ErrorBoundary` message, never a blank window.

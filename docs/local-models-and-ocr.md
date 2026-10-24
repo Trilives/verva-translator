@@ -106,3 +106,7 @@ Chinese/English sample and checks both scripts are transcribed.
 The extracted text stays editable. If the user chooses translation, Verva
 sends that text through the selected translation profile. When that profile is
 remote, the extracted text is sent to that provider; OCR itself stays local.
+
+Long images fill the preview width and scroll inside the preview panel. Zoom
+controls adjust the image from 50% to 300%; the recognized and translated text
+have separate scrollable editors.

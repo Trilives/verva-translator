@@ -26,6 +26,8 @@ flowchart LR
   UI["React + Fluent UI"] -->|invoke| CMD["Tauri commands"]
   UI -->|Store plugin| SETTINGS["settings.json"]
   CMD --> PROVIDERS["OpenAI / Claude adapters"]
+  CMD --> OLLAMA["Ollama on loopback"]
+  CMD --> OCR["Local PP-OCRv6 Small"]
   CMD --> VAULT["Stronghold vault"]
   VAULT --> KEYS["API keys"]
   VAULT --> HISTORY["History, max 100 entries"]
@@ -116,19 +118,30 @@ the row the full body width and let each button keep its natural size.
 src/
 |- main.tsx            root render, stylesheet import order, error boundary
 |- AppShell.tsx        theme + i18n providers, page routing, workspace state
-|- pages/              MainPage (workspace), HistoryPage, SettingsPage
+|- pages/              Workspace, Local Models, Image to Text, History, Settings
 |- components/         workspace and settings UI, dialogs
 |- hooks/              useAppSettings, useWorkspace, useTranslation, useShortcuts
 |- services/           Tauri invoke/event wrappers, store, updater
 |- domain/             catalogs and shared TypeScript types
 |- i18n/               typed English and Chinese dictionaries
-`- styles/             base, workspace, dialogs, settings, history, responsive
+`- styles/             base, workspace, dialogs, settings, history, local-features, responsive
 ```
 
 The workspace owns source text and editable result, major target languages plus
 Custom, the tone row, streaming state, coalesced streaming rendering,
 detected-source display beside Auto Detect, Swap, Copy, Clear, and configurable
 shortcuts.
+
+`loadUiState` resets the source selector to Auto Detect when the app starts.
+Switching pages leaves the current choice intact. Swap exchanges both language
+direction and the source/result text; if automatic detection supplied no usable
+language, it chooses Chinese (Simplified) after English or English otherwise.
+Swap is disabled while a translation streams.
+
+The Image to Text page keeps its image viewport, recognized-text editor, and
+translated result independently scrollable. A long image fills the preview
+width by default and can be zoomed without shrinking the text pane. Adding the
+translation result does not compress the image and recognition panels.
 
 Translate is a single-purpose button on the input pane and is disabled while a
 translation streams; the translate shortcut is guarded the same way, since a
@@ -161,10 +174,10 @@ every navigation. The hook is memory-only and nothing it holds reaches
 
 ### Tone and style
 
-Four builtin tones (Natural, Daily conversation, Business, Command issuance) are
-followed by up to four user-defined tones and then an Add button, which is
-hidden once the fourth exists. A user-defined tone carries a name and free-text
-requirements and is edited through the pencil on its own bubble; selecting a
+Six builtin tones (Normal, Natural, Daily conversation, Business, Command
+issuance, Professional) are followed by up to four user-defined tones and then
+an Add button, hidden once the fourth exists. A user-defined tone carries a name
+and free-text requirements and is edited through the pencil on its own bubble; selecting a
 bubble never opens the editor.
 
 Rust is unchanged by this: a builtin sends its key as `style` with an empty
@@ -181,7 +194,7 @@ Settings owns profiles, provider interface, base URL, model, secret entry,
 thinking level, long conversation, context limit, updates, shortcuts, and UI
 language.
 
-The history dialog shows the latest 100 translations; restored results remain
+The History page shows the latest 100 translations; restored results remain
 editable. Long-conversation session state lives in `useTranslation` and is
 memory-only.
 
@@ -203,6 +216,8 @@ Registered commands:
 - `save_api_key`, `has_api_key`, `delete_api_key`
 - `start_translation`, `cancel_translation`
 - `list_models`
+- `local_model_status`, `pull_local_model`, `load_local_model`, `unload_local_model`
+- `recognize_image`
 - `test_profile`
 - `list_history`, `clear_history`
 - `install_mode`
@@ -268,9 +283,10 @@ window/event, store, updater, and process permissions it uses. Shell and
 unrestricted filesystem plugins are not exposed. The content-security policy
 permits only the Tauri origin and local assets.
 
-Interface state (page, languages, selected tone, user-defined tones, settings
-tab) is stored under a separate `ui-state` key so the window looks the same on
-the next launch. It must never gain a field carrying source text or a
+Interface state (page, target language, selected tone, user-defined tones,
+settings tab) is stored under a separate `ui-state` key. The source selection
+is also stored while the app runs, but each launch resets it to Auto Detect.
+This state must never gain a field carrying source text or a
 translation result: `settings.json` is plain JSON, and translation content
 belongs in the vault. `src/services/uiState.test.ts` enforces this.
 
@@ -304,8 +320,8 @@ The catalogue entries in `domain/catalogs.ts` are **identifiers, not labels**.
 They are stored in `ui-state`, written to history, and interpolated into the
 prompt, so they stay English in every locale; only the label localizes.
 `LanguageSelect` renders `language(option)` but passes `optionValue` back
-unchanged, and `languageLabel` returns unknown values as-is because the detected
-language comes from the model and need not be in the catalogue. Translating an
+unchanged. Common model aliases such as `Chinese` are normalized to catalogue
+identifiers before localization; unknown values remain as-is. Translating an
 identifier would change what reaches the model and orphan existing history.
 
 Installer localization is handled by Tauri NSIS with English and Simplified
@@ -323,8 +339,8 @@ each language in its own script either way.
 The release workflow produces:
 
 - `Verva-Translate-<version>-windows-x64-portable.exe`
-- `Verva-Translate-<version>-windows-x64-setup.exe` and its `.sig`
-- SHA-256 files for both
+- `Verva-Translate-<version>-windows-x64-setup.exe`
+- `Verva-Translate-<version>-checksums.zip` with both SHA-256 files and the installer signature
 
 NSIS installs per-user without elevation and provides a language dropdown,
 destination selection, Start Menu shortcut, and uninstall registration.

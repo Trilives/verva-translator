@@ -15,7 +15,7 @@ Verva is built around three ideas:
 2. How a translation sounds should be something you can state directly.
 3. The model, the endpoint, and the cost should be your choice.
 
-It is a deliberately small Windows tool: a clean workspace, a handful of practical styles, direct compatible-API access, and a careful approach to storing your key locally. It does not translate without an AI model, and it does not hide model costs inside another subscription.
+It is a Windows tool with a clean translation workspace, practical styles, optional local models through Ollama, and local Chinese/English image text recognition. It stores provider keys securely and does not hide model costs inside another subscription.
 
 It is early software, and there is plenty still to improve. Bug reports and suggestions are genuinely welcome.
 
@@ -31,6 +31,6 @@ Verva 建立在三个想法之上：
 2. 译文应该是什么语气，应该可以由你直接说明。
 3. 模型、接口和调用成本，应该由你自己选择。
 
-这是一款刻意做得很小的 Windows 工具：清晰的工作区、几种实用风格、直接的兼容接口调用，以及对本地密钥存储的谨慎处理。它不会在没有 AI 模型的情况下完成翻译，也不会把模型费用藏进另一项订阅里。
+这是一款面向 Windows 的工具，提供清晰的翻译工作区、实用的表达风格、通过 Ollama 运行的本地翻译模型，以及本地中英文图片文字识别。服务商密钥会安全存储，模型费用也不会藏在另一项订阅里。
 
 这仍是一个早期项目，还有很多需要改进的地方。欢迎提交问题反馈和建议。
