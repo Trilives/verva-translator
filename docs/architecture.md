@@ -25,6 +25,7 @@ rewrite; they are not compatibility layers.
 flowchart LR
   UI["React + Fluent UI"] -->|invoke| CMD["Tauri commands"]
   UI -->|Store plugin| SETTINGS["settings.json"]
+  UI -->|Opener plugin| BROWSER["System browser: approved external links"]
   CMD --> PROVIDERS["OpenAI / Claude adapters"]
   CMD --> OLLAMA["Ollama on loopback"]
   CMD --> OCR["Local PP-OCRv6 Small"]
@@ -279,8 +280,10 @@ Public model URLs require HTTPS; plain HTTP is allowed for loopback and private
 LAN IP addresses. API keys are optional for those local endpoints.
 
 Tauri capabilities are split by window; the frontend receives only the core
-window/event, store, updater, and process permissions it uses. Shell and
-unrestricted filesystem plugins are not exposed. The content-security policy
+window/event, store, updater, process, and narrowly scoped opener permissions
+it uses. The opener allows only the Ollama download and the benchmark URLs
+shown on the Local Models page. Shell and unrestricted filesystem plugins are
+not exposed. The content-security policy
 permits only the Tauri origin and local assets.
 
 Interface state (page, target language, selected tone, user-defined tones,

@@ -2,6 +2,7 @@ import { Button, MessageBar, MessageBarBody, ProgressBar, Spinner } from "@fluen
 import { useCallback, useEffect, useState } from "react";
 import type { AppSettings } from "../domain/types";
 import { useI18n } from "../i18n/I18nContext";
+import { ExternalLink } from "../components/ExternalLink";
 import {
   loadLocalModel, localModelStatus, onLocalModelPull, pullLocalModel, unloadLocalModel,
   type LocalStatus, type PullProgress
@@ -118,7 +119,7 @@ export function LocalModelsPage({ settings, update, onUse }: Props) {
       <Button onClick={() => void refresh()}>{t("refreshModels")}</Button></header>
     {!status.available && <div className="local-alert">
       <span>{t("ollamaMissing")}</span>
-      <a href="https://ollama.com/download/windows" target="_blank" rel="noreferrer">{t("installOllama")}</a>
+      <ExternalLink href="https://ollama.com/download/windows" onError={setError}>{t("installOllama")}</ExternalLink>
     </div>}
     {error && <MessageBar intent="error"><MessageBarBody>{error}</MessageBarBody></MessageBar>}
     <p className="local-note">{t("localPrivacy")} {t("largeModelAdvice")}</p>
@@ -126,7 +127,7 @@ export function LocalModelsPage({ settings, update, onUse }: Props) {
     <div className="local-list">
       {modelTiers.map((tier) => <section className="local-tier" key={tier.title}>
         <div className="local-tier-header"><h2>{t(tier.title)}</h2>
-          <p>{t(tier.evidence)} <a href={tier.source} target="_blank" rel="noreferrer">{t("benchmarkSource")}</a></p>
+          <p>{t(tier.evidence)} <ExternalLink href={tier.source} onError={setError}>{t("benchmarkSource")}</ExternalLink></p>
         </div>
         {tier.models.map((model) => renderCard(model.name, model))}
       </section>)}

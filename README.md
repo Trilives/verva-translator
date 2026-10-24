@@ -45,7 +45,7 @@ Translation requires an AI-compatible endpoint; Ollama provides one locally. Cus
 
 ## Configure translation
 
-For local translation, install and start [Ollama for Windows](https://ollama.com/download/windows). In **Local Models**, download a recommended 4B model, choose **Run model**, then **Use in translation**. Larger models need more RAM or VRAM than their download size suggests. See [model and OCR choices](docs/local-models-and-ocr.md) for the five size tiers and benchmark context. OCR does not require Ollama.
+For local translation, install and start [Ollama for Windows](https://ollama.com/download/windows); the download link in the app opens your default browser. In **Local Models**, download a recommended 4B model, choose **Run model**, then **Use in translation**. Larger models need more RAM or VRAM than their download size suggests. See [model and OCR choices](docs/local-models-and-ocr.md) for the five size tiers and benchmark context. OCR does not require Ollama.
 
 1. Open **Settings** from the left rail.
 2. Add a configuration, or select one to expand it.

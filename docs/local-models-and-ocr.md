@@ -10,6 +10,8 @@ for installed/running state, streamed pulls, loading and unloading. Choosing
 `http://127.0.0.1:11434/v1`, so the existing translation workspace and settings
 use the same profile as remote models. Ollama must be installed and running.
 "Stop model" unloads that model from memory; it does not shut down Ollama.
+The Ollama download and benchmark links open in the system browser through a
+limited Tauri Opener permission.
 
 The catalog has five size tiers, ordered by practical recommendation rather
 than parameter count:

@@ -45,7 +45,7 @@ Verva Translate 是一款面向 Windows 的“自带 AI 接口”翻译工具。
 
 ## 配置模型
 
-若希望在本机翻译，请先安装并启动 [Ollama for Windows](https://ollama.com/download/windows)，再到**本地模型**页下载推荐的 4B 模型，点击“运行模型”和“用于翻译”。较大的模型需要更多内存或显存。五档模型与 benchmark 依据见[模型和 OCR 选型](docs/local-models-and-ocr.md)。OCR 无需 Ollama。
+若希望在本机翻译，请先安装并启动 [Ollama for Windows](https://ollama.com/download/windows)；应用内的下载链接会使用系统默认浏览器打开。随后到**本地模型**页下载推荐的 4B 模型，点击“运行模型”和“用于翻译”。较大的模型需要更多内存或显存。五档模型与 benchmark 依据见[模型和 OCR 选型](docs/local-models-and-ocr.md)。OCR 无需 Ollama。
 
 1. 从左侧栏打开**设置**。
 2. 新增一套配置，或点击列表中的配置将其展开。

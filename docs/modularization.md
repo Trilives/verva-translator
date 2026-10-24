@@ -144,6 +144,8 @@ last thing to give it up.
 - Preferences never contain keys or translation history.
 - History is capped at 100 entries before serialization and stored in the vault.
 - Tauri capabilities are window-specific and least-privilege.
+- External links use the Opener plugin with a URL allowlist so they reach the
+  system browser from the desktop app.
 - Do not enable shell execution or broad filesystem permissions for convenience.
 - Update packages must be signed and verified.
 
