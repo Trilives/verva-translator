@@ -1,4 +1,5 @@
 use super::secrets::load_provider_key;
+use super::translation_protocol::ProtocolDecoder;
 use crate::{
     history,
     models::{
@@ -54,20 +55,31 @@ async fn run_translation(
     cancelled: Arc<AtomicBool>,
 ) {
     let state = app.state::<AppState>();
-    let prompt = providers::build_user_prompt(
-        &request.source_language,
-        &request.target_language,
-        &request.style,
-        &request.custom_style,
-        &request.source_text,
-    );
+    let dedicated = providers::is_translategemma(&profile);
+    let prompt = if dedicated {
+        providers::build_translategemma_prompt(
+            &request.source_language,
+            &request.target_language,
+            &request.style,
+            &request.custom_style,
+            &request.source_text,
+        )
+    } else {
+        providers::build_user_prompt(
+            &request.source_language,
+            &request.target_language,
+            &request.style,
+            &request.custom_style,
+            &request.source_text,
+        )
+    };
     let previous = request
         .session_id
         .as_ref()
         .and_then(|id| state.sessions.lock().ok()?.get(id).cloned())
         .unwrap_or_default();
     let token_estimate = estimate_tokens(&prompt, &previous);
-    let mut decoder = ProtocolDecoder::default();
+    let mut decoder = ProtocolDecoder::new(dedicated);
     let mut translated = String::new();
     let result = providers::stream_translation(
         &state.client,
@@ -237,39 +249,4 @@ fn emit_chunk(
             error,
         },
     );
-}
-
-#[derive(Default)]
-struct ProtocolDecoder {
-    pending: String,
-    language: Option<String>,
-    marker_done: bool,
-}
-
-impl ProtocolDecoder {
-    fn push(&mut self, delta: &str) -> Option<(String, Option<String>)> {
-        if self.marker_done {
-            return Some((delta.to_owned(), None));
-        }
-        self.pending.push_str(delta);
-        let newline = self.pending.find('\n')?;
-        let first = self.pending[..newline].trim().to_owned();
-        let remaining = self.pending[newline + 1..].to_owned();
-        self.pending.clear();
-        self.marker_done = true;
-        if let Some(value) = first
-            .strip_prefix("[[LANGUAGE:")
-            .and_then(|value| value.strip_suffix("]]"))
-        {
-            self.language = Some(value.trim().to_owned());
-        } else {
-            return Some((format!("{first}\n{remaining}"), None));
-        }
-        Some((remaining, self.language.clone()))
-    }
-
-    fn finish(&mut self) -> Option<(String, Option<String>)> {
-        (!self.pending.is_empty())
-            .then(|| (std::mem::take(&mut self.pending), self.language.clone()))
-    }
 }

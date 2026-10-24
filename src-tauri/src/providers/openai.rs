@@ -19,7 +19,10 @@ where
         prompt,
     } = request;
     let endpoint = endpoint(&profile.base_url);
-    let mut messages = vec![json!({"role":"system","content":system})];
+    let mut messages = Vec::new();
+    if !system.is_empty() {
+        messages.push(json!({"role":"system","content":system}));
+    }
     for turn in history {
         messages.push(json!({"role":"user","content":turn.user}));
         messages.push(json!({"role":"assistant","content":turn.assistant}));

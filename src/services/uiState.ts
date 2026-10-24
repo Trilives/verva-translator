@@ -5,7 +5,7 @@ import { isTauri } from "./runtime";
 
 const key = "ui-state";
 
-export type PersistedPage = "workspace" | "history" | "settings";
+export type PersistedPage = "workspace" | "localModels" | "imageText" | "history" | "settings";
 export type SettingsSection = "profiles" | "general" | "updates" | "shortcuts";
 
 /**

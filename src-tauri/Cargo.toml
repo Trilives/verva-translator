@@ -1,6 +1,6 @@
 [package]
 name = "verva-translator"
-version = "0.2.0-beta.1"
+version = "0.3.0-beta.1"
 description = "A bring-your-own-AI translator for Windows"
 authors = ["Trilives"]
 edition = "2021"
@@ -21,6 +21,10 @@ tauri-plugin-stronghold = "2.3.1"
 tauri-plugin-updater = "2"
 chrono = { version = "0.4", features = ["serde"] }
 blake2 = "0.10"
+base64 = "0.22"
+image = "0.25"
+rapidocr-core = "0.2.2"
+ort = "=2.0.0-rc.12"
 dashmap = "6"
 futures-util = "0.3"
 rand = "0.9"

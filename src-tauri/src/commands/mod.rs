@@ -1,7 +1,10 @@
 pub(crate) mod diagnostics;
 pub(crate) mod history;
+pub(crate) mod local_models;
 pub(crate) mod models;
+pub(crate) mod ocr;
 pub(crate) mod secrets;
 pub(crate) mod translation;
+pub(crate) mod translation_protocol;
 pub(crate) mod updates;
 pub(crate) mod window_state;

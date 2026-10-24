@@ -7,6 +7,8 @@ import { useWorkspace } from "./hooks/useWorkspace";
 import { MainPage } from "./pages/MainPage";
 import { HistoryPage } from "./pages/HistoryPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { LocalModelsPage } from "./pages/LocalModelsPage";
+import { ImageTextPage } from "./pages/ImageTextPage";
 import { Sidebar } from "./components/Sidebar";
 import { ClosePromptDialog } from "./components/ClosePromptDialog";
 import { hideToTray, onCloseRequested, quitApp } from "./services/backend";
@@ -53,6 +55,10 @@ export function AppShell() {
               ui={ui.state} patchUi={ui.patch} workspace={workspace}
               restored={restored} onRestored={() => setRestored(undefined)} />}
             {ui.state.page === "history" && <HistoryPage onRestore={restore} />}
+            {ui.state.page === "localModels" && <LocalModelsPage settings={state.settings} update={state.update}
+              onUse={() => ui.patch({ page: "workspace" })} />}
+            {ui.state.page === "imageText" && <ImageTextPage settings={state.settings} update={state.update} ui={ui.state}
+              patchUi={ui.patch} workspace={workspace} />}
             {ui.state.page === "settings" && <SettingsPage settings={state.settings} update={state.update}
               section={ui.state.settingsSection} onSection={(settingsSection) => ui.patch({ settingsSection })} />}
           </main>

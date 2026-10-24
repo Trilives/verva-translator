@@ -22,6 +22,8 @@ Settings: configurations are a list; selecting one opens the full editor with a 
 
 - OpenAI-compatible and Claude-compatible streaming APIs; no demo engine or bundled model.
 - Multiple named configurations with fast switching, encrypted API keys, an adjustable thinking level, and optional long conversations.
+- A Local Models page downloads, loads, and unloads translation models through Ollama, then adds an installed model as a translation configuration. Qwen3.5 4B is the general recommendation and TranslateGemma 4B is the translation-focused recommendation; larger models need capable hardware.
+- An Image to Text page uses PP-OCRv6 Small on the local CPU for Chinese and English. Its compact model files download on first use. The extracted text is editable and translation is optional; Ollama is not needed for OCR.
 - Natural, Conversation, Business, Command, and user-authored Custom styles.
 - Automatic source-language detection that remains visibly separate from the Auto Detect selector and participates correctly in language swapping.
 - Major target languages plus a final Custom option for any language supported by the chosen model.
@@ -39,9 +41,11 @@ Download a release from [GitHub Releases](https://github.com/Trilives/verva-tran
 - `Verva-Translate-<version>-windows-x64-setup.exe` — recommended installer. It offers an installation-language selector, optional destination selection, progress UI, shortcuts, and uninstall support.
 - `Verva-Translate-<version>-windows-x64-portable.exe` — portable build. It reports available updates but never replaces itself automatically.
 
-Verva requires an AI-compatible API. Custom language support, thinking mode, output quality, and usage cost all depend on the selected provider and model. With short text and current provider pricing, a translation using `deepseek-v4-flash` can cost less than US$0.01; actual cost varies with text length, history, reasoning, caching, and future prices.
+Verva requires an AI-compatible API for translation; the local-model option provides one through Ollama. Custom language support, thinking mode, output quality, and usage cost depend on the selected provider and model.
 
 ## Configure a model
+
+For fully local translation, install and start [Ollama for Windows](https://ollama.com/download/windows), then open **Local Models** in the app. Download a model, choose **Run model**, and select **Use in translation**. Model downloads are measured in GB and runtime memory use is higher than file size, so start with a recommended 4B model. Image-to-text uses a separate compact OCR engine and does not require Ollama.
 
 1. Open **Settings** from the left rail.
 2. Add a configuration, or select one to expand it.

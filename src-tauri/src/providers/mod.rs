@@ -37,7 +37,11 @@ where
         client,
         profile,
         key: api_key,
-        system: prompt::system_prompt(),
+        system: if is_translategemma(profile) {
+            ""
+        } else {
+            prompt::system_prompt()
+        },
         history,
         prompt: user_prompt,
     };
@@ -74,6 +78,11 @@ pub fn is_lan_endpoint(value: &str) -> bool {
     endpoint::is_lan(value)
 }
 
+pub fn is_translategemma(profile: &ProviderProfile) -> bool {
+    profile.base_url.starts_with("http://127.0.0.1:11434/")
+        && profile.model.starts_with("translategemma:")
+}
+
 /// Shared verdict for both adapters' probes. A model that refuses the one-token
 /// budget still proves the endpoint, model name and credential are usable.
 pub use probe::redact;
@@ -86,6 +95,28 @@ pub fn build_user_prompt(
     text: &str,
 ) -> String {
     format!("Translate from {source} to {target}. Style: {style}. Additional requirements: {}. Detect the actual source language. First output exactly [[LANGUAGE:language name]] on its own line, then only the translation. Text:\n{text}", if custom.trim().is_empty() { "none" } else { custom })
+}
+
+/// TranslateGemma follows its own single-message translation prompt and
+/// returns translation text directly, without Verva's language marker.
+pub fn build_translategemma_prompt(
+    source: &str,
+    target: &str,
+    style: &str,
+    custom: &str,
+    text: &str,
+) -> String {
+    let source = if source == "Auto Detect" {
+        "the detected source language"
+    } else {
+        source
+    };
+    let requirements = if custom.trim().is_empty() {
+        String::new()
+    } else {
+        format!(" Keep this additional requirement: {}.", custom.trim())
+    };
+    format!("You are a professional {source} to {target} translator. Accurately convey the meaning and nuances of the original text while following {target} grammar and cultural conventions. Use a {style} style.{requirements} Produce only the {target} translation, without explanations or commentary. Translate the following text:\n\n{text}")
 }
 
 #[cfg(test)]
@@ -225,5 +256,22 @@ mod stream_tests {
         let prompt = build_user_prompt("English", "German", "business", "", "Hello");
         assert!(prompt.contains("Style: business"));
         assert!(prompt.contains("Additional requirements: none"));
+    }
+
+    #[test]
+    fn translategemma_uses_its_single_message_format() {
+        let prompt = build_translategemma_prompt(
+            "Chinese (Simplified)",
+            "English",
+            "natural",
+            "Keep names",
+            "你好",
+        );
+        assert!(
+            prompt.contains("You are a professional Chinese (Simplified) to English translator.")
+        );
+        assert!(prompt.ends_with("\n\n你好"));
+        assert!(prompt.contains("Keep names"));
+        assert!(!prompt.contains("[[LANGUAGE:"));
     }
 }

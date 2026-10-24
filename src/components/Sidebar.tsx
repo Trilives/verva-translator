@@ -1,12 +1,14 @@
 import { Button } from "@fluentui/react-components";
-import { History24Regular, Settings24Regular, Translate24Regular } from "@fluentui/react-icons";
+import { History24Regular, Image24Regular, Settings24Regular, Translate24Regular, Server24Regular } from "@fluentui/react-icons";
 import type { ReactElement } from "react";
 import { useI18n } from "../i18n/I18nContext";
 
-export type AppPage = "workspace" | "history" | "settings";
+export type AppPage = "workspace" | "localModels" | "imageText" | "history" | "settings";
 
 const primary = [
   { page: "workspace", icon: <Translate24Regular />, key: "workspace" },
+  { page: "localModels", icon: <Server24Regular />, key: "localModels" },
+  { page: "imageText", icon: <Image24Regular />, key: "imageText" },
   { page: "history", icon: <History24Regular />, key: "history" }
 ] as const;
 

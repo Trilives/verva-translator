@@ -14,6 +14,7 @@ import "./styles/workspace.css";
 import "./styles/dialogs.css";
 import "./styles/settings.css";
 import "./styles/history.css";
+import "./styles/local-features.css";
 import "./styles/responsive.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(

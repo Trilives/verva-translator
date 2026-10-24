@@ -48,7 +48,7 @@ The application has exactly one Tauri window, `main`, with **native decorations*
 and a Mica backdrop (`transparent: true` plus `windowEffects`). There is no
 hand-drawn title bar and no second OS window.
 
-Workspace, History, and Settings are in-app pages selected from the sidebar.
+Workspace, Local Models, Image to Text, History, and Settings are in-app pages selected from the sidebar.
 Only Custom style, Update, and the close prompt are Fluent `Dialog` surfaces.
 
 This replaced an earlier design with a separate `settings` window, which shipped
