@@ -64,10 +64,32 @@ export const languageNames: Record<UiLocale, Record<LanguageId, string>> = { en,
  */
 const isKnown = (value: string): value is LanguageId => Object.hasOwn(en, value);
 
+/** Models may report a common language under a shorter or reordered name. */
+const aliases: Record<string, LanguageId> = {
+  chinese: "Chinese (Simplified)",
+  "simplified chinese": "Chinese (Simplified)",
+  "mandarin chinese": "Chinese (Simplified)",
+  mandarin: "Chinese (Simplified)",
+  "traditional chinese": "Chinese (Traditional)",
+  "zh-cn": "Chinese (Simplified)",
+  "zh-hans": "Chinese (Simplified)",
+  "zh-tw": "Chinese (Traditional)",
+  "zh-hant": "Chinese (Traditional)"
+};
+
+export function normalizeLanguageId(value: string): LanguageId | undefined {
+  const trimmed = value.trim();
+  if (isKnown(trimmed)) return trimmed;
+  const lower = trimmed.toLowerCase();
+  return (Object.hasOwn(aliases, lower) ? aliases[lower] : undefined)
+    ?? languages.find((language) => language.toLowerCase() === lower);
+}
+
 /**
  * Label for a language identifier. Falls back to the raw string, because the
  * detected language comes from the model and need not be in the catalogue.
  */
 export function languageLabel(locale: UiLocale, value: string): string {
-  return isKnown(value) ? languageNames[locale][value] : value;
+  const normalized = normalizeLanguageId(value);
+  return normalized ? languageNames[locale][normalized] : value;
 }

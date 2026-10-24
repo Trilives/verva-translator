@@ -14,6 +14,7 @@ import { UpdateDialog } from "../components/UpdateDialog";
 import { checkForUpdate, type UpdateResult } from "../services/updater";
 import { detectInstallMode } from "../services/backend";
 import { isLanBaseUrl } from "../domain/providerUrl";
+import { swapTranslation } from "../domain/swapTranslation";
 
 interface Props {
   settings: AppSettings;
@@ -98,9 +99,12 @@ export function MainPage({ settings, update, ui, patchUi, workspace, restored, o
   };
 
   const swap = () => {
-    const resolvedSource = source === "Auto Detect" ? translation.detectedLanguage : source;
-    if (!resolvedSource || target === "Custom") return;
-    patchUi({ source: target, target: resolvedSource });
+    if (translation.busy) return;
+    const next = swapTranslation({ source, target, customTarget, detected: translation.detectedLanguage,
+      input, output: translation.output });
+    patchUi({ source: next.source, target: next.target });
+    setInput(next.input);
+    translation.setOutput(next.output);
     translation.setDetectedLanguage(undefined);
   };
 

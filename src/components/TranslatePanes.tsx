@@ -42,7 +42,7 @@ export function TranslatePanes(props: Props) {
 
     <Tooltip content={t("swap")} relationship="label">
       <Button className="swap-button press" appearance="subtle" shape="circular"
-        icon={<ArrowSwap20Regular />} aria-label={t("swap")} onClick={props.onSwap} />
+        icon={<ArrowSwap20Regular />} aria-label={t("swap")} onClick={props.onSwap} disabled={props.busy} />
     </Tooltip>
 
     <div className="pane output-pane">

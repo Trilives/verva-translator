@@ -1,5 +1,6 @@
+// @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
-import { defaultUiState, migrateUiState, type UiState } from "./uiState";
+import { defaultUiState, loadUiState, migrateUiState, type UiState } from "./uiState";
 
 describe("persisted interface state", () => {
   it("restores the fields that make the window look the same", () => {
@@ -26,6 +27,18 @@ describe("persisted interface state", () => {
   it("starts on the workspace with auto detection", () => {
     expect(defaultUiState().page).toBe("workspace");
     expect(defaultUiState().source).toBe("Auto Detect");
+  });
+
+  it("resets a saved source language only when the app state loads", async () => {
+    localStorage.setItem("ui-state", JSON.stringify({ ...defaultUiState(), source: "Japanese", target: "English" }));
+    try {
+      const loaded = await loadUiState();
+      expect(loaded.source).toBe("Auto Detect");
+      expect(loaded.target).toBe("English");
+      expect(JSON.parse(localStorage.getItem("ui-state")!).source).toBe("Japanese");
+    } finally {
+      localStorage.removeItem("ui-state");
+    }
   });
 });
 

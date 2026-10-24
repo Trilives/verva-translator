@@ -1,5 +1,6 @@
 import { Dropdown, Option } from "@fluentui/react-components";
 import { sourceLanguages, targetLanguages } from "../domain/catalogs";
+import { normalizeLanguageId } from "../i18n/languages";
 import { useI18n } from "../i18n/I18nContext";
 
 interface Props {
@@ -12,6 +13,7 @@ interface Props {
 export function LanguageSelect({ kind, value, detected, onChange }: Props) {
   const { t, language } = useI18n();
   const options = kind === "source" ? sourceLanguages : targetLanguages;
+  const selected = normalizeLanguageId(value) ?? value;
 
   return <div className="language-select">
     <span className="section-label">
@@ -23,12 +25,12 @@ export function LanguageSelect({ kind, value, detected, onChange }: Props) {
     <Dropdown
       className="language-dropdown"
       aria-label={t(kind)}
-      value={language(value)}
-      selectedOptions={[value]}
+      value={language(selected)}
+      selectedOptions={[selected]}
       /* `optionValue` is the canonical English identifier, never the label. */
       onOptionSelect={(_, data) => onChange(String(data.optionValue))}
     >
-      {options.map((option) => <Option key={option} value={option}>{language(option)}</Option>)}
+      {options.map((option) => <Option key={option} value={option} text={language(option)}>{language(option)}</Option>)}
     </Dropdown>
   </div>;
 }

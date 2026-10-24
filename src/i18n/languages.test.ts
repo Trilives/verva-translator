@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { languageLabel, languageNames } from "./languages";
+import { languageLabel, languageNames, normalizeLanguageId } from "./languages";
 import { languages } from "../domain/catalogs";
 
 describe("language names", () => {
@@ -54,5 +54,7 @@ describe("language names", () => {
     expect(languageLabel("zh-CN", "Japanese")).toBe("日语");
     expect(languageLabel("zh-CN", "Auto Detect")).toBe("自动检测");
     expect(languageLabel("en", "Japanese")).toBe("Japanese");
+    expect(languageLabel("zh-CN", "Chinese")).toBe("简体中文");
+    expect(normalizeLanguageId("traditional chinese")).toBe("Chinese (Traditional)");
   });
 });

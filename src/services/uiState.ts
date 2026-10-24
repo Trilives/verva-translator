@@ -75,7 +75,9 @@ export async function loadUiState(): Promise<UiState> {
   // fresh id, so leaving the legacy shape on disk would hand it a different id
   // on every launch until something else happened to save.
   if ("customStyle" in stored) await saveUiState(state).catch(() => {});
-  return state;
+  // The source choice is a session preference: each app launch starts with
+  // automatic detection, while page navigation keeps the in-memory selection.
+  return { ...state, source: "Auto Detect" };
 }
 
 async function readUiState(): Promise<Partial<UiState> & LegacyUiState> {
