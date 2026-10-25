@@ -138,6 +138,7 @@ pub struct LocalModel {
 #[serde(rename_all = "camelCase")]
 pub struct LocalStatus {
     available: bool,
+    ollama_installed: bool,
     models: Vec<LocalModel>,
     active_pulls: Vec<String>,
 }
@@ -198,6 +199,7 @@ async fn models(client: &reqwest::Client, path: &str) -> Result<OllamaModels, St
 
 #[tauri::command]
 pub async fn local_model_status(state: State<'_, AppState>) -> Result<LocalStatus, String> {
+    let ollama_installed = ollama_executable().is_some();
     let active_pulls = state
         .pull_cancellations
         .iter()
@@ -208,6 +210,7 @@ pub async fn local_model_status(state: State<'_, AppState>) -> Result<LocalStatu
         Err(_) => {
             return Ok(LocalStatus {
                 available: false,
+                ollama_installed,
                 models: vec![],
                 active_pulls,
             })
@@ -219,6 +222,7 @@ pub async fn local_model_status(state: State<'_, AppState>) -> Result<LocalStatu
         .unwrap_or_default();
     Ok(LocalStatus {
         available: true,
+        ollama_installed,
         active_pulls,
         models: installed
             .into_iter()

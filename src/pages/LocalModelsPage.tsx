@@ -44,7 +44,8 @@ interface Props {
 
 export function LocalModelsPage({ settings, update, onUse }: Props) {
   const { t } = useI18n();
-  const [status, setStatus] = useState<LocalStatus>({ available: false, models: [], activePulls: [] });
+  const [status, setStatus] = useState<LocalStatus>({ available: false, ollamaInstalled: false, models: [], activePulls: [] });
+  const [statusLoaded, setStatusLoaded] = useState(false);
   const [pending, setPending] = useState<string>();
   const [pendingAction, setPendingAction] = useState<"download" | "load" | "unload">();
   const [canceling, setCanceling] = useState(false);
@@ -55,6 +56,7 @@ export function LocalModelsPage({ settings, update, onUse }: Props) {
   const refresh = useCallback(async () => {
     try { setStatus(await localModelStatus()); }
     catch (reason) { setError(String(reason)); }
+    finally { setStatusLoaded(true); }
   }, []);
 
   useEffect(() => {
@@ -112,19 +114,19 @@ export function LocalModelsPage({ settings, update, onUse }: Props) {
   const renderCard = (name: string, recommendation?: Recommendation) => {
     const installed = status.models.find((model) => model.name === name || recommendation?.aliases.some((alias) => alias === model.name));
     const activePull = status.activePulls.includes(name);
-    const busy = pending === name || pending === installed?.name || activePull;
+    const busy = (!!pending && (pending === name || pending === installed?.name)) || activePull;
     return <article className="local-card" key={name}>
       <div className="local-card-main">
         <div className="local-card-title"><strong>{name}</strong>
           {recommendation && <span className="local-badge">{t(recommendation.badge)}</span>}
-          <span className="local-status">{installed?.running ? t("modelRunning") : installed ? t("modelInstalled") : t("modelNotInstalled")}</span>
+          <span className="local-status">{!status.available ? t("modelStatusUnavailable") : installed?.running ? t("modelRunning") : installed ? t("modelInstalled") : t("modelNotInstalled")}</span>
         </div>
         <p>{recommendation ? t(recommendation.description) : t("otherInstalledModel")}</p>
         <small>{t("downloadSize")}: {installed ? `${(installed.size / 1e9).toFixed(1)} GB` : recommendation?.size ?? "—"}{installed?.quantization ? ` · ${installed.quantization}` : ""} · {recommendation ? t(recommendation.hardware) : ""}</small>
         {recommendation && <small className="local-memory">{t("estimatedVram")}: {recommendation.vram} · {t("estimatedRam")}: {recommendation.ram}</small>}
       </div>
       <div className="local-actions">
-        {!installed && <Button disabled={(!status.available && !settings.ollamaProxyUrl?.trim()) || !!pending || activePull} onClick={() => void act(name, "download")}>{t("downloadModel")}</Button>}
+        {!installed && <Button disabled={!statusLoaded || (!status.available && !(status.ollamaInstalled && settings.ollamaProxyUrl?.trim())) || !!pending || activePull} onClick={() => void act(name, "download")}>{t("downloadModel")}</Button>}
         {installed && <>
           <Button disabled={!!pending} onClick={() => void act(installed.name, installed.running ? "unload" : "load")}>{installed.running ? t("unloadModel") : t("loadModel")}</Button>
           <Button appearance="primary" disabled={!!pending} onClick={() => void useForTranslation(installed.name)}>{t("useForTranslation")}</Button>
@@ -141,14 +143,16 @@ export function LocalModelsPage({ settings, update, onUse }: Props) {
   return <div className="local-view">
     <header className="page-header"><div><h1>{t("localModels")}</h1><p>{t("localModelsSubtitle")}</p></div>
       <Button onClick={() => void refresh()}>{t("refreshModels")}</Button></header>
-    {!status.available && <div className="local-alert">
-      <span>{settings.ollamaProxyUrl?.trim() ? t("ollamaNotRunningProxy") : t("ollamaMissing")}</span>
-      <ExternalLink href="https://ollama.com/download/windows" onError={setError}>{t("installOllama")}</ExternalLink>
+    {statusLoaded && !status.available && <div className="local-alert">
+      <span>{status.ollamaInstalled
+        ? settings.ollamaProxyUrl?.trim() ? t("ollamaNotRunningProxy") : t("ollamaStopped")
+        : t("ollamaMissing")}</span>
+      {!status.ollamaInstalled && <ExternalLink href="https://ollama.com/download/windows" onError={setError}>{t("installOllama")}</ExternalLink>}
     </div>}
     {error && <MessageBar intent="error"><MessageBarBody>{error}</MessageBarBody></MessageBar>}
     {notice && <MessageBar intent="info"><MessageBarBody>{notice}</MessageBarBody></MessageBar>}
     <label className="local-proxy-field"><span>{t("ollamaProxyAddress")}</span>
-      <Input value={settings.ollamaProxyUrl ?? ""} placeholder="http://127.0.0.1:7897"
+      <Input value={settings.ollamaProxyUrl ?? ""} placeholder="127.0.0.1:7897"
         onChange={(_, data) => void update((current) => ({ ...current, ollamaProxyUrl: data.value }))} />
       <small>{t("ollamaProxyHint")}</small>
     </label>

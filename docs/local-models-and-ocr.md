@@ -81,13 +81,15 @@ retain partial data for a later retry, and its server may not immediately stop
 all background work after the client disconnects. Verva does not delete the
 model or partial cache on cancellation.
 
-The optional **Download proxy** field accepts an HTTP or HTTPS proxy endpoint,
-such as `http://127.0.0.1:7897`; it may be left blank. For a nonempty value,
+The optional **Download proxy** field accepts an HTTP proxy IP and port, such as
+`127.0.0.1:7897` (equivalent to `http://127.0.0.1:7897`); it may be left blank. For a nonempty value,
 Verva starts a temporary Ollama server on a separate loopback port with
 `HTTPS_PROXY` set only for that child process, downloads through it, and stops
 the child afterward. The normal Ollama server and model cache remain available.
 This avoids changing the Windows user environment or restarting the normal
-Ollama app. The proxy URL is saved in Verva settings and must not contain
+Ollama app. If Ollama is installed but stopped, Verva prompts the user to start
+it; a configured proxy can still download through the temporary service. The
+proxy address is saved in Verva settings and must not contain
 credentials. A local test downloaded and verified `gemma3:1b-it-q4_K_M` through
 the current HTTP proxy while DNS still returned a fake IP, and a second Ollama
 server saw the same installed model cache.

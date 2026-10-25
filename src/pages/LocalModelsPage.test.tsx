@@ -21,7 +21,7 @@ beforeEach(() => {
   vi.stubGlobal("ResizeObserver", class {
     observe() {} unobserve() {} disconnect() {}
   });
-  mocks.status.mockResolvedValue({ available: true, models: [], activePulls: [] });
+  mocks.status.mockResolvedValue({ available: true, ollamaInstalled: true, models: [], activePulls: [] });
   mocks.pull.mockReset().mockResolvedValue(undefined);
   mocks.cancel.mockResolvedValue(undefined);
   mocks.onProgress.mockResolvedValue(() => {});
@@ -42,8 +42,24 @@ it("offers cancellation for an active pull and clears the busy state afterward",
   expect(screen.queryByRole("button", { name: "Cancel download" })).toBeNull();
 });
 
+it("keeps idle model cards out of the busy state", async () => {
+  render(<I18nProvider locale="en"><LocalModelsPage settings={settings} update={vi.fn()} onUse={vi.fn()} /></I18nProvider>);
+  await waitFor(() => expect(screen.getAllByRole("button", { name: "Download" })[0].hasAttribute("disabled")).toBe(false));
+  expect(screen.queryByText("Working…")).toBeNull();
+  expect(screen.queryByRole("button", { name: "Cancel download" })).toBeNull();
+});
+
+it("distinguishes installed but stopped Ollama from a missing installation", async () => {
+  mocks.status.mockResolvedValue({ available: false, ollamaInstalled: true, models: [], activePulls: [] });
+  render(<I18nProvider locale="en"><LocalModelsPage settings={settings} update={vi.fn()} onUse={vi.fn()} /></I18nProvider>);
+  expect(await screen.findByText(/Ollama is installed but not running/)).not.toBeNull();
+  expect(screen.queryByText("Get Ollama for Windows")).toBeNull();
+  expect(screen.queryByText("Not installed")).toBeNull();
+  expect(screen.getAllByRole("button", { name: "Download" })[0].hasAttribute("disabled")).toBe(true);
+});
+
 it("can cancel a pull after returning to the local models page", async () => {
-  mocks.status.mockResolvedValue({ available: true, models: [], activePulls: ["qwen3.5:2b-q4_K_M"] });
+  mocks.status.mockResolvedValue({ available: true, ollamaInstalled: true, models: [], activePulls: ["qwen3.5:2b-q4_K_M"] });
   render(<I18nProvider locale="en"><LocalModelsPage settings={settings} update={vi.fn()} onUse={vi.fn()} /></I18nProvider>);
   const cancel = await screen.findByRole("button", { name: "Cancel download" });
   fireEvent.click(cancel);
@@ -51,9 +67,10 @@ it("can cancel a pull after returning to the local models page", async () => {
 });
 
 it("uses the optional proxy for a model download", async () => {
-  const withProxy = { ...settings, ollamaProxyUrl: "http://127.0.0.1:7897" };
+  mocks.status.mockResolvedValue({ available: false, ollamaInstalled: true, models: [], activePulls: [] });
+  const withProxy = { ...settings, ollamaProxyUrl: "127.0.0.1:7897" };
   render(<I18nProvider locale="en"><LocalModelsPage settings={withProxy} update={vi.fn()} onUse={vi.fn()} /></I18nProvider>);
   await waitFor(() => expect(screen.getAllByRole("button", { name: "Download" })[0].hasAttribute("disabled")).toBe(false));
   fireEvent.click(screen.getAllByRole("button", { name: "Download" })[0]);
-  await waitFor(() => expect(mocks.pull).toHaveBeenCalledWith("translategemma:4b-it-q4_K_M", "http://127.0.0.1:7897"));
+  await waitFor(() => expect(mocks.pull).toHaveBeenCalledWith("translategemma:4b-it-q4_K_M", "127.0.0.1:7897"));
 });

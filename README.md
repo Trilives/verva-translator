@@ -22,7 +22,7 @@ Settings: configurations are a list; selecting one opens the full editor with a 
 
 - OpenAI-compatible and Claude-compatible streaming APIs. Translation uses the endpoint and model you choose.
 - Multiple named configurations with fast switching, encrypted API keys, an adjustable thinking level, and optional long conversations.
-- A Local Models page downloads explicit quantized translation models through Ollama, shows progress and approximate VRAM/RAM needs, supports an optional HTTP proxy address and download cancellation, and runs an installed model as a translation configuration. Qwen3.5 4B is the general recommendation and TranslateGemma 4B is the translation-focused recommendation.
+- A Local Models page downloads explicit quantized translation models through Ollama, shows progress and approximate VRAM/RAM needs, supports an optional HTTP proxy entered as IP:port and download cancellation, and runs an installed model as a translation configuration. Qwen3.5 4B is the general recommendation and TranslateGemma 4B is the translation-focused recommendation.
 - An Image to Text page uses PP-OCRv6 Small on the local CPU for Chinese and English. The first use downloads compact OCR model files. Long images fill the preview width, scroll independently, and can be zoomed. Extracted text is editable; translation is optional.
 - Normal, Natural, Conversation, Business, Command, Professional, and user-authored styles.
 - The source language starts at Auto Detect on each app launch and keeps your selection while you move between pages. Swap exchanges both languages and the source/result text for reverse translation.
@@ -45,7 +45,7 @@ Translation requires an AI-compatible endpoint; Ollama provides one locally. Cus
 
 ## Configure translation
 
-For local translation, install and start [Ollama for Windows](https://ollama.com/download/windows); the download link in the app opens your default browser. In **Local Models**, download a recommended Q4_K_M 4B model, choose **Run model**, then **Use in translation**. The optional download proxy field can use a local HTTP proxy when a network returns a `198.18.x.x` fake IP; leave it blank for Ollama's normal connection. See [model sizes and proxy behavior](docs/local-models-and-ocr.md) for details. OCR does not require Ollama.
+For local translation, install and start [Ollama for Windows](https://ollama.com/download/windows); the download link in the app opens your default browser. If Ollama is installed but stopped, the app prompts you to start it. In **Local Models**, download a recommended Q4_K_M 4B model, choose **Run model**, then **Use in translation**. The optional download proxy field accepts a local HTTP proxy as `127.0.0.1:7897` when a network returns a `198.18.x.x` fake IP; leave it blank for Ollama's normal connection. See [model sizes and proxy behavior](docs/local-models-and-ocr.md) for details. OCR does not require Ollama.
 
 1. Open **Settings** from the left rail.
 2. Add a configuration, or select one to expand it.
