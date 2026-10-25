@@ -30,7 +30,7 @@ function normalize(settings: AppSettings): AppSettings {
 export const defaultSettings = (): AppSettings => {
   const profile = defaultProfile();
   return {
-    locale: "en", theme: "system", closeBehavior: "ask", updateMode: "manual", updateChannel: "stable",
+    locale: "en", theme: "system", closeBehavior: "ask", updateMode: "manual", updateChannel: "stable", ollamaProxyUrl: "",
     activeProfileId: profile.id, profiles: [profile],
     shortcuts: { translate: "Ctrl+Enter", clear: "Ctrl+L", copy: "Ctrl+Shift+C" }
   };

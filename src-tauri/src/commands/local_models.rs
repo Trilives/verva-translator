@@ -4,13 +4,126 @@ use dashmap::mapref::entry::Entry;
 use futures_util::StreamExt;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use std::time::Duration;
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
+use std::{
+    net::TcpListener,
+    process::{Child, Command, Stdio},
+    time::Duration,
+};
 use tauri::{AppHandle, Emitter, State};
 use tokio::sync::watch;
 
 const OLLAMA: &str = "http://127.0.0.1:11434";
 const PULL_CANCELLED: &str = "LOCAL_PULL_CANCELLED";
 const PULL_FAKE_IP: &str = "OLLAMA_REDIRECT_FAKE_IP";
+
+struct ProxyOllama {
+    child: Child,
+    base_url: String,
+}
+
+impl Drop for ProxyOllama {
+    fn drop(&mut self) {
+        let _ = self.child.kill();
+        let _ = self.child.wait();
+    }
+}
+
+fn proxy_url(input: Option<&str>) -> Result<Option<String>, String> {
+    let value = input.unwrap_or("").trim();
+    if value.is_empty() {
+        return Ok(None);
+    }
+    if value.len() > 512 {
+        return Err("Invalid Ollama proxy address".into());
+    }
+    let value = if value.contains("://") {
+        value.to_owned()
+    } else {
+        format!("http://{value}")
+    };
+    let parsed = reqwest::Url::parse(&value).map_err(|_| "Invalid Ollama proxy address")?;
+    if !matches!(parsed.scheme(), "http" | "https")
+        || parsed.host_str().is_none()
+        || parsed.username() != ""
+        || parsed.password().is_some()
+        || parsed.path() != "/"
+        || parsed.query().is_some()
+        || parsed.fragment().is_some()
+    {
+        return Err("Invalid Ollama proxy address".into());
+    }
+    Ok(Some(value))
+}
+
+fn ollama_executable() -> Option<std::path::PathBuf> {
+    let name = if cfg!(windows) {
+        "ollama.exe"
+    } else {
+        "ollama"
+    };
+    let mut candidates = Vec::new();
+    if let Some(local) = std::env::var_os("LOCALAPPDATA") {
+        candidates.push(
+            std::path::PathBuf::from(local)
+                .join("Programs/Ollama")
+                .join(name),
+        );
+    }
+    if let Some(programs) = std::env::var_os("ProgramFiles") {
+        candidates.push(std::path::PathBuf::from(programs).join("Ollama").join(name));
+    }
+    if let Some(path) = std::env::var_os("PATH") {
+        candidates.extend(std::env::split_paths(&path).map(|dir| dir.join(name)));
+    }
+    candidates.into_iter().find(|path| path.is_file())
+}
+
+impl ProxyOllama {
+    async fn start(client: &reqwest::Client, proxy: &str) -> Result<Self, String> {
+        let executable = ollama_executable().ok_or("OLLAMA_EXECUTABLE_MISSING")?;
+        let listener = TcpListener::bind("127.0.0.1:0").map_err(|e| e.to_string())?;
+        let port = listener.local_addr().map_err(|e| e.to_string())?.port();
+        drop(listener);
+        let base_url = format!("http://127.0.0.1:{port}");
+        let mut command = Command::new(executable);
+        command
+            .arg("serve")
+            .env("OLLAMA_HOST", format!("127.0.0.1:{port}"))
+            .env("HTTPS_PROXY", proxy)
+            .env_remove("HTTP_PROXY")
+            .env("NO_PROXY", "127.0.0.1,localhost")
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null());
+        #[cfg(windows)]
+        command.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+        let child = command.spawn().map_err(|e| e.to_string())?;
+        let mut server = Self { child, base_url };
+        for _ in 0..100 {
+            if server
+                .child
+                .try_wait()
+                .map_err(|e| e.to_string())?
+                .is_some()
+            {
+                return Err("Ollama proxy download service exited during startup".into());
+            }
+            if client
+                .get(format!("{}/api/version", server.base_url))
+                .timeout(Duration::from_millis(500))
+                .send()
+                .await
+                .is_ok_and(|response| response.status().is_success())
+            {
+                return Ok(server);
+            }
+            tokio::time::sleep(Duration::from_millis(150)).await;
+        }
+        Err("Ollama proxy download service did not start".into())
+    }
+}
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -90,7 +203,7 @@ pub async fn local_model_status(state: State<'_, AppState>) -> Result<LocalStatu
         .iter()
         .map(|entry| entry.key().clone())
         .collect();
-    let installed = match models(&state.client, "/api/tags").await {
+    let installed = match models(&state.local_client, "/api/tags").await {
         Ok(value) => value.models,
         Err(_) => {
             return Ok(LocalStatus {
@@ -100,7 +213,7 @@ pub async fn local_model_status(state: State<'_, AppState>) -> Result<LocalStatu
             })
         }
     };
-    let running = models(&state.client, "/api/ps")
+    let running = models(&state.local_client, "/api/ps")
         .await
         .map(|value| value.models.into_iter().map(|m| m.name).collect::<Vec<_>>())
         .unwrap_or_default();
@@ -124,8 +237,10 @@ pub async fn pull_local_model(
     app: AppHandle,
     state: State<'_, AppState>,
     model: String,
+    proxy: Option<String>,
 ) -> Result<(), String> {
     validate_model(&model)?;
+    let proxy = proxy_url(proxy.as_deref())?;
     let (cancel_tx, mut cancel_rx) = watch::channel(false);
     match state.pull_cancellations.entry(model.clone()) {
         Entry::Occupied(_) => return Err("This model is already downloading".into()),
@@ -133,9 +248,38 @@ pub async fn pull_local_model(
             entry.insert(cancel_tx);
         }
     }
-    let result = pull_model_stream(&app, &state.client, &model, &mut cancel_rx).await;
+    let result = pull_with_proxy(
+        &app,
+        &state.local_client,
+        &model,
+        proxy.as_deref(),
+        &mut cancel_rx,
+    )
+    .await;
     state.pull_cancellations.remove(&model);
     result
+}
+
+async fn pull_with_proxy(
+    app: &AppHandle,
+    client: &reqwest::Client,
+    model: &str,
+    proxy: Option<&str>,
+    cancel_rx: &mut watch::Receiver<bool>,
+) -> Result<(), String> {
+    let server = if let Some(proxy) = proxy {
+        Some(tokio::select! {
+            biased;
+            _ = cancel_rx.changed() => return Err(PULL_CANCELLED.into()),
+            server = ProxyOllama::start(client, proxy) => server?,
+        })
+    } else {
+        None
+    };
+    let base_url = server
+        .as_ref()
+        .map_or(OLLAMA, |server| server.base_url.as_str());
+    pull_model_stream(app, client, base_url, model, cancel_rx).await
 }
 
 #[tauri::command]
@@ -173,11 +317,12 @@ fn pull_http_error(status: reqwest::StatusCode, body: &str) -> String {
 async fn pull_model_stream(
     app: &AppHandle,
     client: &reqwest::Client,
+    base_url: &str,
     model: &str,
     cancel_rx: &mut watch::Receiver<bool>,
 ) -> Result<(), String> {
     let request = client
-        .post(format!("{OLLAMA}/api/pull"))
+        .post(format!("{base_url}/api/pull"))
         .json(&json!({ "model": model, "stream": true }))
         .timeout(Duration::from_secs(60 * 60))
         .send();
@@ -262,17 +407,19 @@ async fn set_loaded(client: &reqwest::Client, model: &str, keep_alive: &str) -> 
 
 #[tauri::command]
 pub async fn load_local_model(state: State<'_, AppState>, model: String) -> Result<(), String> {
-    set_loaded(&state.client, &model, "30m").await
+    set_loaded(&state.local_client, &model, "30m").await
 }
 
 #[tauri::command]
 pub async fn unload_local_model(state: State<'_, AppState>, model: String) -> Result<(), String> {
-    set_loaded(&state.client, &model, "0").await
+    set_loaded(&state.local_client, &model, "0").await
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{pull_error, pull_http_error, validate_model, PULL_FAKE_IP};
+    use super::{
+        proxy_url, pull_error, pull_http_error, validate_model, ProxyOllama, PULL_FAKE_IP,
+    };
     #[test]
     fn rejects_names_that_could_escape_the_model_catalog() {
         assert!(validate_model("qwen3.5:4b").is_ok());
@@ -295,5 +442,46 @@ mod tests {
         let other = pull_error("download failed: https://example.com/data?X-Amz-Signature=secret");
         assert!(!other.contains("secret"));
         assert!(!other.contains("https://"));
+    }
+
+    #[test]
+    fn accepts_an_optional_http_proxy_but_rejects_credentials_and_paths() {
+        assert_eq!(proxy_url(Some(" ")).unwrap(), None);
+        assert_eq!(
+            proxy_url(Some("127.0.0.1:7897")).unwrap().as_deref(),
+            Some("http://127.0.0.1:7897")
+        );
+        assert_eq!(
+            proxy_url(Some("https://proxy.example:8443"))
+                .unwrap()
+                .as_deref(),
+            Some("https://proxy.example:8443")
+        );
+        assert!(proxy_url(Some("socks5://127.0.0.1:7897")).is_err());
+        assert!(proxy_url(Some("http://user:secret@localhost:7897")).is_err());
+        assert!(proxy_url(Some("http://localhost:7897/path")).is_err());
+    }
+
+    #[tokio::test]
+    #[ignore = "requires a local Ollama installation and VERVA_TEST_PROXY"]
+    async fn temporary_proxy_worker_starts_on_a_separate_port() {
+        let proxy = std::env::var("VERVA_TEST_PROXY").expect("set VERVA_TEST_PROXY");
+        let client = reqwest::Client::builder().no_proxy().build().unwrap();
+        let server = ProxyOllama::start(&client, &proxy).await.unwrap();
+        assert_ne!(server.base_url, super::OLLAMA);
+        let response = client
+            .get(format!("{}/api/version", server.base_url))
+            .send()
+            .await
+            .unwrap();
+        assert!(response.status().is_success());
+        let url = server.base_url.clone();
+        drop(server);
+        assert!(client
+            .get(format!("{url}/api/version"))
+            .timeout(std::time::Duration::from_secs(1))
+            .send()
+            .await
+            .is_err());
     }
 }

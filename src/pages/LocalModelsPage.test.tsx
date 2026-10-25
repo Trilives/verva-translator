@@ -22,6 +22,7 @@ beforeEach(() => {
     observe() {} unobserve() {} disconnect() {}
   });
   mocks.status.mockResolvedValue({ available: true, models: [], activePulls: [] });
+  mocks.pull.mockReset().mockResolvedValue(undefined);
   mocks.cancel.mockResolvedValue(undefined);
   mocks.onProgress.mockResolvedValue(() => {});
 });
@@ -33,7 +34,7 @@ it("offers cancellation for an active pull and clears the busy state afterward",
   render(<I18nProvider locale="en"><LocalModelsPage settings={settings} update={vi.fn()} onUse={vi.fn()} /></I18nProvider>);
   await waitFor(() => expect(screen.getAllByRole("button", { name: "Download" })[0].hasAttribute("disabled")).toBe(false));
   fireEvent.click(screen.getAllByRole("button", { name: "Download" })[0]);
-  expect(mocks.pull).toHaveBeenCalledWith("translategemma:4b-it-q4_K_M");
+  expect(mocks.pull).toHaveBeenCalledWith("translategemma:4b-it-q4_K_M", undefined);
   fireEvent.click(screen.getByRole("button", { name: "Cancel download" }));
   await waitFor(() => expect(mocks.cancel).toHaveBeenCalledWith("translategemma:4b-it-q4_K_M"));
   rejectPull("LOCAL_PULL_CANCELLED");
@@ -47,4 +48,12 @@ it("can cancel a pull after returning to the local models page", async () => {
   const cancel = await screen.findByRole("button", { name: "Cancel download" });
   fireEvent.click(cancel);
   await waitFor(() => expect(mocks.cancel).toHaveBeenCalledWith("qwen3.5:2b-q4_K_M"));
+});
+
+it("uses the optional proxy for a model download", async () => {
+  const withProxy = { ...settings, ollamaProxyUrl: "http://127.0.0.1:7897" };
+  render(<I18nProvider locale="en"><LocalModelsPage settings={withProxy} update={vi.fn()} onUse={vi.fn()} /></I18nProvider>);
+  await waitFor(() => expect(screen.getAllByRole("button", { name: "Download" })[0].hasAttribute("disabled")).toBe(false));
+  fireEvent.click(screen.getAllByRole("button", { name: "Download" })[0]);
+  await waitFor(() => expect(mocks.pull).toHaveBeenCalledWith("translategemma:4b-it-q4_K_M", "http://127.0.0.1:7897"));
 });

@@ -5,6 +5,8 @@
 .local-alert { display: flex; flex-wrap: wrap; gap: 4px 10px; padding: 10px 12px; border-radius: 8px;
   border: 1px solid var(--colorPaletteYellowBorder2); background: var(--colorPaletteYellowBackground1); font-size: 13px; }
 .local-note { margin: 0; color: var(--colorNeutralForeground3); font-size: 12px; }
+.local-proxy-field { display: grid; gap: 5px; width: min(420px, 100%); font-size: 13px; }
+.local-proxy-field small { color: var(--colorNeutralForeground3); line-height: 1.4; }
 .local-list { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; align-content: start; }
 .local-tier { min-width: 0; display: grid; gap: 9px; }
 .local-tier-header { min-width: 0; padding: 7px 2px 0; }
@@ -23,6 +25,7 @@
 .local-status { color: var(--colorNeutralForeground3); font-size: 11px; }
 .local-card p { margin: 7px 0; color: var(--colorNeutralForeground2); font-size: 13px; }
 .local-card small { color: var(--colorNeutralForeground3); }
+.local-memory { display: block; margin-top: 5px; }
 .local-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .local-progress { grid-column: 1 / -1; display: grid; gap: 5px; font-size: 12px; color: var(--colorNeutralForeground3); }
 .local-progress button { justify-self: start; }

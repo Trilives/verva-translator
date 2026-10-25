@@ -8,7 +8,8 @@ Ollama owns model downloads and inference. Verva calls its loopback API from Rus
 for installed/running state, streamed pulls, loading and unloading. Choosing
 "Use in translation" creates an OpenAI-compatible profile at
 `http://127.0.0.1:11434/v1`, so the existing translation workspace and settings
-use the same profile as remote models. Ollama must be installed and running.
+use the same profile as remote models. Ollama must be installed; its usual server
+must be running to load and use a model.
 Public local models do not require Ollama sign-in; sign-in is for cloud models.
 "Stop model" unloads that model from memory; it does not shut down Ollama.
 The Ollama download and benchmark links open in the system browser through a
@@ -41,10 +42,29 @@ The former TranslateGemma and Gemma 3 default tags already point to the same
 Q4_K_M manifests; existing installs under those names remain usable. Published
 benchmarks below evaluate model families, not these exact quantized files.
 For installed models, Verva displays Ollama's reported `quantization_level`.
-Download sizes are estimates from the Ollama registry;
-runtime memory exceeds the model file size and depends on context and backend.
+Download sizes are from the Ollama registry. The following VRAM/RAM figures are
+**device guidance**, not measured minimums. They assume about 4K context,
+one model, and normal Windows overhead. VRAM is for mostly GPU execution;
+RAM is the alternative for CPU execution. Longer context and concurrent models
+raise memory use. Ollama reports 4K as its default below 24 GiB VRAM and
+provides `/api/ps` to inspect actual allocated memory. A local test on an
+RTX 5070 with the Gemma 3 1B Q4 model reported about 0.88 GB of loaded VRAM
+at 4K context; the 2 GB guidance leaves room for the runtime and other uses.
+
+| Quantized model | Approx. VRAM | Approx. system RAM |
+| --- | ---: | ---: |
+| TranslateGemma 4B Q4_K_M | 5–6 GB | 8 GB |
+| Qwen3.5 4B Q4_K_M | 5–6 GB | 8 GB |
+| Qwen3.5 2B Q4_K_M | 3–4 GB | 6 GB |
+| Qwen3.5 0.8B Q8_0 | 2–3 GB | 4 GB |
+| Gemma 3 1B Q4_K_M | 2 GB | 4 GB |
+| TranslateGemma 12B Q4_K_M | 11–13 GB | 16 GB |
+| Qwen3.5 9B Q4_K_M | 9–11 GB | 16 GB |
+| TranslateGemma 27B Q4_K_M | 22–24 GB | 32 GB |
 
 - [Ollama Windows runtime](https://docs.ollama.com/windows)
+- [Ollama context length and memory](https://docs.ollama.com/context-length)
+- [Ollama running-model memory API](https://docs.ollama.com/api/ps)
 - [Ollama quickstart: local models without a key](https://docs.ollama.com/quickstart)
 - [Ollama model lifecycle API](https://docs.ollama.com/api/generate)
 - [Qwen3.5 model sizes](https://ollama.com/library/qwen3.5/tags)
@@ -61,6 +81,17 @@ retain partial data for a later retry, and its server may not immediately stop
 all background work after the client disconnects. Verva does not delete the
 model or partial cache on cancellation.
 
+The optional **Download proxy** field accepts an HTTP or HTTPS proxy endpoint,
+such as `http://127.0.0.1:7897`; it may be left blank. For a nonempty value,
+Verva starts a temporary Ollama server on a separate loopback port with
+`HTTPS_PROXY` set only for that child process, downloads through it, and stops
+the child afterward. The normal Ollama server and model cache remain available.
+This avoids changing the Windows user environment or restarting the normal
+Ollama app. The proxy URL is saved in Verva settings and must not contain
+credentials. A local test downloaded and verified `gemma3:1b-it-q4_K_M` through
+the current HTTP proxy while DNS still returned a fake IP, and a second Ollama
+server saw the same installed model cache.
+
 If Ollama reports `redirect target not allowed` and an address in
 `198.18.0.0/15`, the model file host was resolved to a proxy fake IP. On this
 machine, the affected host is under `r2.cloudflarestorage.com`. Configure the
@@ -72,6 +103,7 @@ short diagnosis instead of Ollama's signed download URL. It does not bypass
 Ollama's redirect protection.
 
 - [Ollama pull API](https://docs.ollama.com/api/pull)
+- [Ollama proxy configuration](https://docs.ollama.com/faq#how-do-i-use-ollama-behind-a-proxy)
 - [Ollama report of this fake-IP redirect error](https://github.com/ollama/ollama/issues/19086)
 - [Mihomo DNS fake-IP filter options](https://wiki.metacubex.one/en/config/dns/)
 

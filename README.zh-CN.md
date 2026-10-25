@@ -22,7 +22,7 @@ Verva Translate 是一款面向 Windows 的“自带 AI 接口”翻译工具。
 
 - 支持兼容 OpenAI 与兼容 Claude 的流式接口；翻译使用自行选择的端点与模型。
 - 可保存并快速切换多套配置；API 密钥加密保存；每套配置可独立设置思考等级并开启长会话。
-- 本地模型页通过 Ollama 下载明确标注量化格式的模型，显示进度、取消当前下载请求，并可将已安装模型设为翻译配置。默认推荐 Qwen3.5 4B（通用）和 TranslateGemma 4B（翻译专用）；大模型仅适合内存或显存充足的设备。
+- 本地模型页通过 Ollama 下载明确标注量化格式的模型，显示进度和大致显存/内存需求，支持可留空的 HTTP 下载代理地址及取消下载，并可将已安装模型设为翻译配置。默认推荐 Qwen3.5 4B（通用）和 TranslateGemma 4B（翻译专用）。
 - 图片转文字页使用 PP-OCRv6 Small 在本机 CPU 识别中文和英文，首次使用下载轻量模型文件。长图按预览区宽度显示，可独立滚动和缩放；识别结果可编辑，也可选择翻译。
 - 提供普通、自然、日常对话、商务、命令下达、专业和用户自定义风格。
 - 每次启动软件时，源语言设为“自动检测”；切换应用内页面时保留当前选择。中间的交换按钮会同时交换语言、原文和译文，方便反向翻译。
@@ -45,7 +45,7 @@ Verva Translate 是一款面向 Windows 的“自带 AI 接口”翻译工具。
 
 ## 配置模型
 
-若希望在本机翻译，请先安装并启动 [Ollama for Windows](https://ollama.com/download/windows)；应用内的下载链接会使用系统默认浏览器打开。随后到**本地模型**页下载推荐的 Q4_K_M 4B 模型，点击“运行模型”和“用于翻译”。较大的模型需要更多内存或显存。遇到 `redirect target not allowed` 和 `198.18.x.x` 地址时，参见[代理 DNS 处理方法](docs/local-models-and-ocr.md#ollama-downloads-and-cancellation)。OCR 无需 Ollama。
+若希望在本机翻译，请先安装并启动 [Ollama for Windows](https://ollama.com/download/windows)；应用内的下载链接会使用系统默认浏览器打开。随后到**本地模型**页下载推荐的 Q4_K_M 4B 模型，点击“运行模型”和“用于翻译”。遇到 `198.18.x.x` 假 IP 时，可在“下载代理地址”填写本机 HTTP 代理；留空则使用 Ollama 原有连接。各模型的资源估算和代理行为见[模型和 OCR 选型](docs/local-models-and-ocr.md)。OCR 无需 Ollama。
 
 1. 从左侧栏打开**设置**。
 2. 新增一套配置，或点击列表中的配置将其展开。

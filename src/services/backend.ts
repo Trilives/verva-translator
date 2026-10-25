@@ -19,7 +19,7 @@ export interface LocalStatus { available: boolean; models: LocalModel[]; activeP
 export interface PullProgress { model: string; status: string; completed: number; total: number; done: boolean }
 export const localModelStatus = () => isTauri() ? invoke<LocalStatus>("local_model_status")
   : Promise.resolve<LocalStatus>({ available: false, models: [], activePulls: [] });
-export const pullLocalModel = (model: string) => invoke<void>("pull_local_model", { model });
+export const pullLocalModel = (model: string, proxy?: string) => invoke<void>("pull_local_model", { model, proxy });
 export const cancelLocalModelPull = (model: string) => invoke<void>("cancel_local_model_pull", { model });
 export const loadLocalModel = (model: string) => invoke<void>("load_local_model", { model });
 export const unloadLocalModel = (model: string) => invoke<void>("unload_local_model", { model });

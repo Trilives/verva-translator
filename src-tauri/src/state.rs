@@ -79,6 +79,7 @@ pub struct AppState {
     pub pull_cancellations: DashMap<String, watch::Sender<bool>>,
     pub sessions: Mutex<HashMap<String, Vec<ConversationTurn>>>,
     pub client: reqwest::Client,
+    pub local_client: reqwest::Client,
 }
 
 impl AppState {
@@ -92,6 +93,7 @@ impl AppState {
                 .https_only(false)
                 .user_agent("Verva-Translate/0.2")
                 .build()?,
+            local_client: reqwest::Client::builder().no_proxy().build()?,
         })
     }
 }

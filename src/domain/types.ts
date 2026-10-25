@@ -41,6 +41,7 @@ export interface AppSettings {
   closeBehavior: CloseBehavior;
   updateMode: "automatic" | "manual";
   updateChannel: UpdateChannel;
+  ollamaProxyUrl?: string;
   activeProfileId: string;
   profiles: ProviderProfile[];
   shortcuts: ShortcutSettings;

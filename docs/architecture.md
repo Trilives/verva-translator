@@ -225,6 +225,13 @@ Registered commands:
 - `check_update`
 - `hide_to_tray`, `quit_app`
 
+Local model calls use a no-proxy loopback HTTP client. With an optional download
+proxy configured, `pull_local_model` starts a short-lived `ollama serve` child
+on a free loopback port with `HTTPS_PROXY` set for that child, streams its pull,
+then stops it. The normal Ollama server owns model loading and translation;
+both servers share Ollama's on-disk model cache. Cancellation drops the pull
+request and stops the temporary child.
+
 `test_profile` sends one `max_tokens: 1` request to the configured endpoint and
 returns reachability plus latency. Its error text passes through
 `providers::redact`, which strips the active key and caps the message length.

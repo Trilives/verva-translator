@@ -1,4 +1,4 @@
-import { Button, MessageBar, MessageBarBody, ProgressBar, Spinner } from "@fluentui/react-components";
+import { Button, Input, MessageBar, MessageBarBody, ProgressBar, Spinner } from "@fluentui/react-components";
 import { useCallback, useEffect, useState } from "react";
 import type { AppSettings } from "../domain/types";
 import { useI18n } from "../i18n/I18nContext";
@@ -11,22 +11,22 @@ import {
 // Ordered by practical recommendation for a translation app, not parameter count.
 const modelTiers = [
   { title: "tier4Title", evidence: "tier4Evidence", source: "https://arxiv.org/pdf/2601.09012", models: [
-    { name: "translategemma:4b-it-q4_K_M", aliases: ["translategemma:4b"], size: "3.3 GB", badge: "recommendedTranslation", description: "translationModelDescription", hardware: "standardHardware" },
-    { name: "qwen3.5:4b-q4_K_M", aliases: [], size: "3.3 GB", badge: "recommendedAll", description: "visionModelDescription", hardware: "standardHardware" }
+    { name: "translategemma:4b-it-q4_K_M", aliases: ["translategemma:4b"], size: "3.3 GB", vram: "5–6 GB", ram: "8 GB", badge: "recommendedTranslation", description: "translationModelDescription", hardware: "standardHardware" },
+    { name: "qwen3.5:4b-q4_K_M", aliases: [], size: "3.3 GB", vram: "5–6 GB", ram: "8 GB", badge: "recommendedAll", description: "visionModelDescription", hardware: "standardHardware" }
   ] },
   { title: "tier2Title", evidence: "tier2Evidence", source: "https://huggingface.co/Qwen/Qwen3.5-0.8B", models: [
-    { name: "qwen3.5:2b-q4_K_M", aliases: [], size: "1.9 GB", badge: "tierPick", description: "lightweightDescription", hardware: "lightHardware" }
+    { name: "qwen3.5:2b-q4_K_M", aliases: [], size: "1.9 GB", vram: "3–4 GB", ram: "6 GB", badge: "tierPick", description: "lightweightDescription", hardware: "lightHardware" }
   ] },
   { title: "tier1Title", evidence: "tier1Evidence", source: "https://huggingface.co/Qwen/Qwen3.5-0.8B", models: [
-    { name: "qwen3.5:0.8b-q8_0", aliases: [], size: "1.0 GB", badge: "tierPick", description: "subOneBDescription", hardware: "lightHardware" },
-    { name: "gemma3:1b-it-q4_K_M", aliases: ["gemma3:1b"], size: "806 MB", badge: "oneBModel", description: "oneBDescription", hardware: "lightHardware" }
+    { name: "qwen3.5:0.8b-q8_0", aliases: [], size: "1.0 GB", vram: "2–3 GB", ram: "4 GB", badge: "tierPick", description: "subOneBDescription", hardware: "lightHardware" },
+    { name: "gemma3:1b-it-q4_K_M", aliases: ["gemma3:1b"], size: "806 MB", vram: "2 GB", ram: "4 GB", badge: "oneBModel", description: "oneBDescription", hardware: "lightHardware" }
   ] },
   { title: "tierMediumTitle", evidence: "tierMediumEvidence", source: "https://arxiv.org/pdf/2601.09012", models: [
-    { name: "translategemma:12b-it-q4_K_M", aliases: ["translategemma:12b"], size: "8.1 GB", badge: "tierPick", description: "translationModelDescription", hardware: "largeHardware" },
-    { name: "qwen3.5:9b-q4_K_M", aliases: [], size: "6.6 GB", badge: "recommendedAll", description: "visionModelDescription", hardware: "largeHardware" }
+    { name: "translategemma:12b-it-q4_K_M", aliases: ["translategemma:12b"], size: "8.1 GB", vram: "11–13 GB", ram: "16 GB", badge: "tierPick", description: "translationModelDescription", hardware: "largeHardware" },
+    { name: "qwen3.5:9b-q4_K_M", aliases: [], size: "6.6 GB", vram: "9–11 GB", ram: "16 GB", badge: "recommendedAll", description: "visionModelDescription", hardware: "largeHardware" }
   ] },
   { title: "tier27Title", evidence: "tier27Evidence", source: "https://arxiv.org/pdf/2601.09012", models: [
-    { name: "translategemma:27b-it-q4_K_M", aliases: ["translategemma:27b"], size: "17 GB", badge: "tierPick", description: "translationModelDescription", hardware: "veryLargeHardware" }
+    { name: "translategemma:27b-it-q4_K_M", aliases: ["translategemma:27b"], size: "17 GB", vram: "22–24 GB", ram: "32 GB", badge: "tierPick", description: "translationModelDescription", hardware: "veryLargeHardware" }
   ] }
 ] as const;
 
@@ -68,7 +68,7 @@ export function LocalModelsPage({ settings, update, onUse }: Props) {
   const act = async (model: string, action: "download" | "load" | "unload") => {
     setPending(model); setPendingAction(action); setCanceling(false); setError(""); setNotice(""); setProgress(undefined);
     try {
-      if (action === "download") await pullLocalModel(model);
+      if (action === "download") await pullLocalModel(model, settings.ollamaProxyUrl?.trim() || undefined);
       if (action === "load") await loadLocalModel(model);
       if (action === "unload") await unloadLocalModel(model);
       await refresh();
@@ -76,6 +76,8 @@ export function LocalModelsPage({ settings, update, onUse }: Props) {
       const message = String(reason);
       if (message.includes("LOCAL_PULL_CANCELLED")) setNotice(t("downloadCanceled"));
       else if (message.includes("OLLAMA_REDIRECT_FAKE_IP")) setError(t("ollamaFakeIpError"));
+      else if (message.includes("Invalid Ollama proxy address")) setError(t("invalidProxyAddress"));
+      else if (message.includes("OLLAMA_EXECUTABLE_MISSING")) setError(t("ollamaMissing"));
       else setError(message);
     }
     finally { setPending(undefined); setPendingAction(undefined); setCanceling(false); }
@@ -119,9 +121,10 @@ export function LocalModelsPage({ settings, update, onUse }: Props) {
         </div>
         <p>{recommendation ? t(recommendation.description) : t("otherInstalledModel")}</p>
         <small>{t("downloadSize")}: {installed ? `${(installed.size / 1e9).toFixed(1)} GB` : recommendation?.size ?? "—"}{installed?.quantization ? ` · ${installed.quantization}` : ""} · {recommendation ? t(recommendation.hardware) : ""}</small>
+        {recommendation && <small className="local-memory">{t("estimatedVram")}: {recommendation.vram} · {t("estimatedRam")}: {recommendation.ram}</small>}
       </div>
       <div className="local-actions">
-        {!installed && <Button disabled={!status.available || !!pending || activePull} onClick={() => void act(name, "download")}>{t("downloadModel")}</Button>}
+        {!installed && <Button disabled={(!status.available && !settings.ollamaProxyUrl?.trim()) || !!pending || activePull} onClick={() => void act(name, "download")}>{t("downloadModel")}</Button>}
         {installed && <>
           <Button disabled={!!pending} onClick={() => void act(installed.name, installed.running ? "unload" : "load")}>{installed.running ? t("unloadModel") : t("loadModel")}</Button>
           <Button appearance="primary" disabled={!!pending} onClick={() => void useForTranslation(installed.name)}>{t("useForTranslation")}</Button>
@@ -139,13 +142,19 @@ export function LocalModelsPage({ settings, update, onUse }: Props) {
     <header className="page-header"><div><h1>{t("localModels")}</h1><p>{t("localModelsSubtitle")}</p></div>
       <Button onClick={() => void refresh()}>{t("refreshModels")}</Button></header>
     {!status.available && <div className="local-alert">
-      <span>{t("ollamaMissing")}</span>
+      <span>{settings.ollamaProxyUrl?.trim() ? t("ollamaNotRunningProxy") : t("ollamaMissing")}</span>
       <ExternalLink href="https://ollama.com/download/windows" onError={setError}>{t("installOllama")}</ExternalLink>
     </div>}
     {error && <MessageBar intent="error"><MessageBarBody>{error}</MessageBarBody></MessageBar>}
     {notice && <MessageBar intent="info"><MessageBarBody>{notice}</MessageBarBody></MessageBar>}
-    <p className="local-note">{t("localPrivacy")} {t("largeModelAdvice")}</p>
+    <label className="local-proxy-field"><span>{t("ollamaProxyAddress")}</span>
+      <Input value={settings.ollamaProxyUrl ?? ""} placeholder="http://127.0.0.1:7897"
+        onChange={(_, data) => void update((current) => ({ ...current, ollamaProxyUrl: data.value }))} />
+      <small>{t("ollamaProxyHint")}</small>
+    </label>
+    <p className="local-note">{t("localPrivacy")}</p>
     <p className="local-note">{t("quantizedModelNote")}</p>
+    <p className="local-note">{t("memoryEstimateNote")}</p>
     <p className="local-note">{t("benchmarkNote")}</p>
     <div className="local-list">
       {modelTiers.map((tier) => <section className="local-tier" key={tier.title}>
