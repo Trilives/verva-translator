@@ -205,7 +205,7 @@ memory-only.
 src-tauri/src/
 |- lib.rs              plugin, state, and command registration
 |- commands/           thin Tauri command adapters
-|- providers/          OpenAI, Claude, SSE, prompt construction
+|- providers/          OpenAI, Claude, native Ollama, SSE, prompt construction
 |- state.rs            Stronghold vault, cancellations, sessions, HTTP client
 |- security.rs         DPAPI protect/unprotect and master-key bootstrap
 |- history.rs          bounded history stored in the vault
@@ -217,12 +217,12 @@ Registered commands:
 - `save_api_key`, `has_api_key`, `delete_api_key`
 - `start_translation`, `cancel_translation`
 - `list_models`
-- `local_model_status`, `pull_local_model`, `cancel_local_model_pull`, `load_local_model`, `unload_local_model`
+- `local_model_status`, `start_ollama`, `pull_local_model`, `cancel_local_model_pull`, `load_local_model`, `unload_local_model`
 - `recognize_image`
 - `test_profile`
 - `list_history`, `clear_history`
 - `install_mode`
-- `check_update`
+- `check_update`, `install_update`
 - `hide_to_tray`, `quit_app`
 
 Local model calls use a no-proxy loopback HTTP client. With an optional download
@@ -231,9 +231,13 @@ on a free loopback port with `HTTPS_PROXY` set for that child, streams its pull,
 then stops it. The normal Ollama server owns model loading and translation;
 both servers share Ollama's on-disk model cache. Cancellation drops the pull
 request and stops the temporary child.
+The fixed Ollama profile uses the native `/api/chat` endpoint with thinking
+disabled and a direct-output translation prompt. The Settings UI only permits
+changing its model to one returned by Ollama's installed-model list.
 
-`test_profile` sends one `max_tokens: 1` request to the configured endpoint and
-returns reachability plus latency. Its error text passes through
+`test_profile` sends one `max_tokens: 1` request to a remote endpoint; for
+Ollama it checks that the selected model is installed. It returns reachability
+plus latency. Its error text passes through
 `providers::redact`, which strips the active key and caps the message length.
 
 Commands delegate immediately to modules. Command modules do not contain
@@ -357,8 +361,9 @@ destination selection, Start Menu shortcut, and uninstall registration.
 
 `install_mode` reports `installed` when a `.verva-installed` marker written by
 the NSIS hook sits beside the executable, and `portable` otherwise. Only
-installed copies download and apply an update; portable copies report an
-available version only.
+`check_update` only reads release metadata. The UI checks hourly and shows an
+available version in Settings. `install_update` runs only after the user clicks
+the install button in an installed copy. Portable copies link to the release.
 
 The directory is resolved with `std::env::current_exe()`. It must not use
 `PathResolver::executable_dir()`, which is the XDG "user's executables"

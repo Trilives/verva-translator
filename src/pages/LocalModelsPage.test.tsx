@@ -2,17 +2,18 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { AppSettings } from "../domain/types";
+import { LOCAL_OLLAMA_ID } from "../domain/localOllama";
 import { I18nProvider } from "../i18n/I18nContext";
 import { LocalModelsPage } from "./LocalModelsPage";
 
 const mocks = vi.hoisted(() => ({
   status: vi.fn(), pull: vi.fn(), cancel: vi.fn(), onProgress: vi.fn(),
-  load: vi.fn(), unload: vi.fn()
+  load: vi.fn(), unload: vi.fn(), start: vi.fn()
 }));
 vi.mock("../services/backend", () => ({
   localModelStatus: mocks.status, pullLocalModel: mocks.pull,
   cancelLocalModelPull: mocks.cancel, onLocalModelPull: mocks.onProgress,
-  loadLocalModel: mocks.load, unloadLocalModel: mocks.unload
+  loadLocalModel: mocks.load, unloadLocalModel: mocks.unload, startOllama: mocks.start
 }));
 
 const settings = { locale: "en", profiles: [] } as unknown as AppSettings;
@@ -25,6 +26,7 @@ beforeEach(() => {
   mocks.pull.mockReset().mockResolvedValue(undefined);
   mocks.cancel.mockResolvedValue(undefined);
   mocks.onProgress.mockResolvedValue(() => {});
+  mocks.start.mockResolvedValue(undefined);
 });
 afterEach(() => { cleanup(); vi.clearAllMocks(); vi.unstubAllGlobals(); });
 
@@ -56,6 +58,15 @@ it("distinguishes installed but stopped Ollama from a missing installation", asy
   expect(screen.queryByText("Get Ollama for Windows")).toBeNull();
   expect(screen.queryByText("Not installed")).toBeNull();
   expect(screen.getAllByRole("button", { name: "Download" })[0].hasAttribute("disabled")).toBe(true);
+  fireEvent.click(screen.getByRole("button", { name: "Start Ollama" }));
+  await waitFor(() => expect(mocks.start).toHaveBeenCalledOnce());
+});
+
+it("keeps model research behind a guide button", async () => {
+  render(<I18nProvider locale="en"><LocalModelsPage settings={settings} update={vi.fn()} onUse={vi.fn()} /></I18nProvider>);
+  expect(screen.queryByText(/Memory figures are approximate/)).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Model guide" }));
+  expect(await screen.findByText(/Memory figures are approximate/)).not.toBeNull();
 });
 
 it("can cancel a pull after returning to the local models page", async () => {
@@ -91,4 +102,21 @@ it("shows a custom pull after reopening the page", async () => {
   const card = (await screen.findByText("mistral:7b-instruct-q4_K_M")).closest("article");
   expect(card).not.toBeNull();
   expect(within(card!).getByRole("button", { name: "Cancel download" })).not.toBeNull();
+});
+
+it("uses the fixed Ollama profile for an installed model", async () => {
+  mocks.status.mockResolvedValue({ available: true, ollamaInstalled: true,
+    models: [{ name: "gemma3:1b-it-q4_K_M", size: 806067407, running: false }], activePulls: [] });
+  let nextSettings = settings;
+  const update = vi.fn(async (change: AppSettings | ((value: AppSettings) => AppSettings)) => {
+    nextSettings = typeof change === "function" ? change(nextSettings) : change;
+  });
+  const onUse = vi.fn();
+  render(<I18nProvider locale="en"><LocalModelsPage settings={settings} update={update} onUse={onUse} /></I18nProvider>);
+  const card = (await screen.findByText("gemma3:1b-it-q4_K_M")).closest("article");
+  fireEvent.click(within(card!).getByRole("button", { name: "Use in translation" }));
+  await waitFor(() => expect(onUse).toHaveBeenCalledOnce());
+  expect(nextSettings.activeProfileId).toBe(LOCAL_OLLAMA_ID);
+  expect(nextSettings.profiles.filter((profile) => profile.kind === "ollama")).toHaveLength(1);
+  expect(nextSettings.profiles.find((profile) => profile.id === LOCAL_OLLAMA_ID)?.model).toBe("gemma3:1b-it-q4_K_M");
 });

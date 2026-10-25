@@ -4,6 +4,7 @@ import type { ProviderProfile } from "../domain/types";
 import { isLanBaseUrl } from "../domain/providerUrl";
 import { useI18n } from "../i18n/I18nContext";
 import { ProfileEditor } from "./ProfileEditor";
+import { LocalOllamaEditor } from "./LocalOllamaEditor";
 
 interface Props {
   profiles: ProviderProfile[];
@@ -29,13 +30,13 @@ export function ProfileList(props: Props) {
           onClick={() => props.onExpand(expanded ? undefined : profile.id)}>
           {expanded ? <ChevronDown20Regular /> : <ChevronRight20Regular />}
           <span className="profile-name">{profile.name}</span>
-          <span className="profile-meta">{profile.kind === "openai" ? t("openAi") : t("claude")} · {profile.model}</span>
+          <span className="profile-meta">{profile.kind === "ollama" ? t("localModels") : profile.kind === "openai" ? t("openAi") : t("claude")} · {profile.model || t("chooseLocalModel")}</span>
           {profile.id === props.activeId && <Badge appearance="tint" color="brand">{t("activeProfile")}</Badge>}
           {!profile.hasApiKey && !isLanBaseUrl(profile.baseUrl)
             && <Badge appearance="tint" color="warning">{t("apiKeyMissing")}</Badge>}
         </button>
         {expanded && <div className="profile-body">
-          <ProfileEditor
+          {profile.kind === "ollama" ? <LocalOllamaEditor profile={profile} onModel={(model) => props.onChange(profile.id, { model })} /> : <ProfileEditor
             profile={profile}
             canDelete={props.profiles.length > 1}
             apiKeyDraft={props.keyDrafts[profile.id] ?? ""}
@@ -43,7 +44,7 @@ export function ProfileList(props: Props) {
             onSaveKey={() => props.onSaveKey(profile)}
             onChange={(changes) => props.onChange(profile.id, changes)}
             onDelete={() => props.onDelete(profile)}
-          />
+          />}
         </div>}
       </section>;
     })}

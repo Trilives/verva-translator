@@ -8,7 +8,15 @@ pub async fn list_models(
     profile: ProviderProfile,
 ) -> Result<Vec<String>, String> {
     let api_key = load_provider_key(&state, &profile)?;
-    providers::list_models(&state.client, &profile, &api_key)
-        .await
-        .map_err(|error| providers::redact(&error, &api_key))
+    providers::list_models(
+        if matches!(profile.kind, crate::models::ProviderKind::Ollama) {
+            &state.local_client
+        } else {
+            &state.client
+        },
+        &profile,
+        &api_key,
+    )
+    .await
+    .map_err(|error| providers::redact(&error, &api_key))
 }

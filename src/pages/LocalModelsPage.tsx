@@ -1,10 +1,11 @@
-import { Button, Input, MessageBar, MessageBarBody, ProgressBar, Spinner } from "@fluentui/react-components";
+import { Button, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, Input, MessageBar, MessageBarBody, ProgressBar, Spinner } from "@fluentui/react-components";
 import { useCallback, useEffect, useState } from "react";
 import type { AppSettings } from "../domain/types";
+import { LOCAL_OLLAMA_ID, localOllamaProfile } from "../domain/localOllama";
 import { useI18n } from "../i18n/I18nContext";
 import { ExternalLink } from "../components/ExternalLink";
 import {
-  cancelLocalModelPull, loadLocalModel, localModelStatus, onLocalModelPull, pullLocalModel, unloadLocalModel,
+  cancelLocalModelPull, loadLocalModel, localModelStatus, onLocalModelPull, pullLocalModel, startOllama, unloadLocalModel,
   type LocalStatus, type PullProgress
 } from "../services/backend";
 
@@ -53,6 +54,8 @@ export function LocalModelsPage({ settings, update, onUse }: Props) {
   const [customModelInput, setCustomModelInput] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [starting, setStarting] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
 
   const refresh = useCallback(async () => {
     try { setStatus(await localModelStatus()); }
@@ -97,17 +100,22 @@ export function LocalModelsPage({ settings, update, onUse }: Props) {
   };
 
   const useForTranslation = async (model: string) => {
-    const existing = settings.profiles.find((profile) =>
-      profile.baseUrl === "http://127.0.0.1:11434/v1" && profile.model === model);
-    if (existing) await update((current) => ({ ...current, activeProfileId: existing.id }));
-    else {
-      const id = crypto.randomUUID();
-      await update((current) => ({ ...current, activeProfileId: id,
-        profiles: [...current.profiles, { id, name: `Local · ${model}`, kind: "openai",
-          baseUrl: "http://127.0.0.1:11434/v1", model, thinking: "off",
-          longConversation: false, contextLimit: 32768, hasApiKey: false }] }));
-    }
+    await update((current) => ({ ...current, activeProfileId: LOCAL_OLLAMA_ID,
+      profiles: current.profiles.some((profile) => profile.id === LOCAL_OLLAMA_ID)
+        ? current.profiles.map((profile) => profile.id === LOCAL_OLLAMA_ID ? localOllamaProfile(model) : profile)
+        : [...current.profiles, localOllamaProfile(model)] }));
     onUse();
+  };
+
+  const launchOllama = async () => {
+    setStarting(true); setError("");
+    try { await startOllama(); await refresh(); }
+    catch (reason) {
+      const message = String(reason);
+      setError(message.includes("OLLAMA_EXECUTABLE_MISSING") ? t("ollamaMissing")
+        : message.includes("Ollama did not start") ? t("ollamaStartFailed") : message);
+    }
+    finally { setStarting(false); }
   };
 
   const customModel = customModelInput.trim();
@@ -150,24 +158,21 @@ export function LocalModelsPage({ settings, update, onUse }: Props) {
   };
   return <div className="local-view">
     <header className="page-header"><div><h1>{t("localModels")}</h1><p>{t("localModelsSubtitle")}</p></div>
-      <Button onClick={() => void refresh()}>{t("refreshModels")}</Button></header>
+      <div className="local-header-actions"><Button onClick={() => setGuideOpen(true)}>{t("modelGuide")}</Button>
+        <Button onClick={() => void refresh()}>{t("refreshModels")}</Button></div></header>
     {statusLoaded && !status.available && <div className="local-alert">
       <span>{status.ollamaInstalled
         ? settings.ollamaProxyUrl?.trim() ? t("ollamaNotRunningProxy") : t("ollamaStopped")
         : t("ollamaMissing")}</span>
       {!status.ollamaInstalled && <ExternalLink href="https://ollama.com/download/windows" onError={setError}>{t("installOllama")}</ExternalLink>}
+      {status.ollamaInstalled && <Button size="small" disabled={starting} onClick={() => void launchOllama()}>{starting ? t("startingOllama") : t("startOllama")}</Button>}
     </div>}
     {error && <MessageBar intent="error"><MessageBarBody>{error}</MessageBarBody></MessageBar>}
     {notice && <MessageBar intent="info"><MessageBarBody>{notice}</MessageBarBody></MessageBar>}
     <label className="local-proxy-field"><span>{t("ollamaProxyAddress")}</span>
       <Input value={settings.ollamaProxyUrl ?? ""} placeholder="127.0.0.1:7897"
         onChange={(_, data) => void update((current) => ({ ...current, ollamaProxyUrl: data.value }))} />
-      <small>{t("ollamaProxyHint")}</small>
     </label>
-    <p className="local-note">{t("localPrivacy")}</p>
-    <p className="local-note">{t("quantizedModelNote")}</p>
-    <p className="local-note">{t("memoryEstimateNote")}</p>
-    <p className="local-note">{t("benchmarkNote")}</p>
     <div className="local-list">
       <section className="local-tier">
         <div className="local-tier-header"><h2>{t("customModelTitle")}</h2><p>{t("customModelHint")}</p></div>
@@ -178,9 +183,7 @@ export function LocalModelsPage({ settings, update, onUse }: Props) {
         {showCustomCard && renderCard(customModel)}
       </section>
       {modelTiers.map((tier) => <section className="local-tier" key={tier.title}>
-        <div className="local-tier-header"><h2>{t(tier.title)}</h2>
-          <p>{t(tier.evidence)} <ExternalLink href={tier.source} onError={setError}>{t("benchmarkSource")}</ExternalLink></p>
-        </div>
+        <div className="local-tier-header"><h2>{t(tier.title)}</h2></div>
         {tier.models.map((model) => renderCard(model.name, model))}
       </section>)}
       {(otherInstalled.length > 0 || otherActivePulls.length > 0) && <section className="local-tier">
@@ -189,5 +192,12 @@ export function LocalModelsPage({ settings, update, onUse }: Props) {
         {otherActivePulls.map((name) => renderCard(name))}
       </section>}
     </div>
+    <Dialog open={guideOpen} onOpenChange={(_, data) => setGuideOpen(data.open)}><DialogSurface><DialogBody>
+      <DialogTitle>{t("modelGuide")}</DialogTitle><DialogContent className="local-guide">
+        <p>{t("localPrivacy")}</p><p>{t("quantizedModelNote")}</p><p>{t("memoryEstimateNote")}</p>
+        <p>{t("ollamaProxyHint")}</p><p>{t("benchmarkNote")}</p>
+        {modelTiers.map((tier) => <p key={tier.title}><strong>{t(tier.title)}:</strong> {t(tier.evidence)} <ExternalLink href={tier.source} onError={setError}>{t("benchmarkSource")}</ExternalLink></p>)}
+      </DialogContent><DialogActions><Button onClick={() => setGuideOpen(false)}>{t("closeGuide")}</Button></DialogActions>
+    </DialogBody></DialogSurface></Dialog>
   </div>;
 }

@@ -1,5 +1,5 @@
 export type UiLocale = "en" | "zh-CN";
-export type ProviderKind = "openai" | "claude";
+export type ProviderKind = "openai" | "claude" | "ollama";
 export type UpdateChannel = "stable" | "beta";
 /** How much reasoning to request from the model. */
 export type ThinkingLevel = "off" | "low" | "medium" | "high";
@@ -39,7 +39,6 @@ export interface AppSettings {
   locale: UiLocale;
   theme: "system" | "light" | "dark";
   closeBehavior: CloseBehavior;
-  updateMode: "automatic" | "manual";
   updateChannel: UpdateChannel;
   ollamaProxyUrl?: string;
   activeProfileId: string;

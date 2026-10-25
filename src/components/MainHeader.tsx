@@ -26,7 +26,8 @@ export function MainHeader({ profiles, activeId, session, onProfile, onModel, on
   const discovered = active ? cache[active.id] ?? [] : [];
   // The active model is always offered so the control shows a value even before
   // discovery runs or when the endpoint returns nothing.
-  const modelOptions = active ? [...new Set([active.model, ...discovered].filter(Boolean))] : [];
+  const modelOptions = active?.kind === "ollama" ? discovered
+    : active ? [...new Set([active.model, ...discovered].filter(Boolean))] : [];
   const loadingModels = !!active && active.id === loadingId;
 
   return <header className="main-header">
@@ -50,7 +51,7 @@ export function MainHeader({ profiles, activeId, session, onProfile, onModel, on
         </Tooltip>
         <Tooltip content={t("thinkingLevel")} relationship="label">
           <Dropdown className="header-dropdown thinking" aria-label={t("thinkingLevel")} value={t(thinkingLevelKeys[level])}
-            selectedOptions={[level]} onOptionSelect={(_, d) => onThinking(d.optionValue as ThinkingLevel)}>
+            selectedOptions={[level]} disabled={active?.kind === "ollama"} onOptionSelect={(_, d) => onThinking(d.optionValue as ThinkingLevel)}>
             {thinkingLevels.map((option) => <Option key={option} value={option}>{t(thinkingLevelKeys[option])}</Option>)}
           </Dropdown>
         </Tooltip>

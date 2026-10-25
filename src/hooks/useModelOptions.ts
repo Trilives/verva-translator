@@ -15,7 +15,7 @@ export function useModelOptions() {
   const requested = useRef<Set<string>>(new Set());
 
   const load = useCallback((profile: ProviderProfile) => {
-    if (requested.current.has(profile.id)) return;
+    if (profile.kind !== "ollama" && requested.current.has(profile.id)) return;
     requested.current.add(profile.id);
     setLoadingId(profile.id);
     void (async () => {

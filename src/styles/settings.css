@@ -50,6 +50,7 @@
 .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
 .model-row { display: flex; gap: 8px; min-width: 0; }
 .model-row > [role="combobox"] { flex: 1; min-width: 0; }
+.model-row > select { flex: 1; min-width: 0; }
 
 /* Configuration list: rows that expand into the full auto-saving editor. */
 .profile-list { display: grid; gap: 8px; }

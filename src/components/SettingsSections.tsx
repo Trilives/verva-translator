@@ -3,6 +3,8 @@ import { ArrowSync20Regular } from "@fluentui/react-icons";
 import type { AppSettings, CloseBehavior, UiLocale, UpdateChannel } from "../domain/types";
 import { useI18n } from "../i18n/I18nContext";
 import { ShortcutRecorder } from "./ShortcutRecorder";
+import type { useUpdates } from "../hooks/useUpdates";
+import { ExternalLink } from "./ExternalLink";
 
 type Update = (value: AppSettings | ((settings: AppSettings) => AppSettings)) => Promise<void>;
 
@@ -37,16 +39,9 @@ export function GeneralSection({ settings, update }: { settings: AppSettings; up
   </div>;
 }
 
-export function UpdatesSection({ settings, update, status, onCheck }: { settings: AppSettings; update: Update; status: string; onCheck: () => void }) {
+export function UpdatesSection({ settings, update, updates }: { settings: AppSettings; update: Update; updates: ReturnType<typeof useUpdates> }) {
   const { t } = useI18n();
   return <div className="settings-stack">
-    <section className="settings-card">
-      <h2>{t("updates")}</h2>
-      <RadioGroup value={settings.updateMode} onChange={(_, d) => update((current) => ({ ...current, updateMode: d.value as AppSettings["updateMode"] }))}>
-        <Radio value="automatic" label={t("automatic")} />
-        <Radio value="manual" label={t("manual")} />
-      </RadioGroup>
-    </section>
     <section className="settings-card">
       <h2>{t("channel")}</h2>
       <RadioGroup value={settings.updateChannel} onChange={(_, d) => update((current) => ({ ...current, updateChannel: d.value as UpdateChannel }))}>
@@ -54,10 +49,13 @@ export function UpdatesSection({ settings, update, status, onCheck }: { settings
         <Radio value="beta" label={t("beta")} />
       </RadioGroup>
       <div className="settings-card-actions">
-        <Button icon={<ArrowSync20Regular />} onClick={onCheck}>{t("checkUpdates")}</Button>
-        {status && <span className="settings-status">{status}</span>}
+        <Button icon={<ArrowSync20Regular />} disabled={updates.checking} onClick={() => void updates.check()}>{updates.checking ? t("checking") : t("checkUpdates")}</Button>
+        {updates.available?.available && updates.canInstall && <Button appearance="primary" disabled={updates.installing} onClick={() => void updates.install()}>{updates.installing ? t("installingUpdate") : t("installUpdate")}</Button>}
+        {updates.available?.version && updates.portable && <ExternalLink href={`https://github.com/Trilives/verva-translator/releases/tag/${updates.available.version}`}>{t("downloadUpdate")}</ExternalLink>}
+        {updates.available?.version && <span className="settings-status">{t("versionAvailable")} {updates.available.version}</span>}
+        {!updates.available && updates.status && <span className="settings-status">{updates.status === "checking" ? t("checking") : updates.status === "current" ? t("upToDate") : updates.status}</span>}
       </div>
-      <p className="settings-note">{t("portableNotice")}</p>
+      <p className="settings-note">{t("backgroundUpdateHint")}{updates.portable ? ` ${t("portableNotice")}` : ""}</p>
     </section>
   </div>;
 }

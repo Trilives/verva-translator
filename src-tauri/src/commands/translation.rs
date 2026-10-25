@@ -56,8 +56,17 @@ async fn run_translation(
 ) {
     let state = app.state::<AppState>();
     let dedicated = providers::is_translategemma(&profile);
+    let local = matches!(profile.kind, crate::models::ProviderKind::Ollama);
     let prompt = if dedicated {
         providers::build_translategemma_prompt(
+            &request.source_language,
+            &request.target_language,
+            &request.style,
+            &request.custom_style,
+            &request.source_text,
+        )
+    } else if local {
+        providers::build_local_prompt(
             &request.source_language,
             &request.target_language,
             &request.style,
@@ -79,10 +88,14 @@ async fn run_translation(
         .and_then(|id| state.sessions.lock().ok()?.get(id).cloned())
         .unwrap_or_default();
     let token_estimate = estimate_tokens(&prompt, &previous);
-    let mut decoder = ProtocolDecoder::new(dedicated);
+    let mut decoder = ProtocolDecoder::new(dedicated || local);
     let mut translated = String::new();
     let result = providers::stream_translation(
-        &state.client,
+        if local {
+            &state.local_client
+        } else {
+            &state.client
+        },
         &profile,
         &api_key,
         &previous,

@@ -4,6 +4,7 @@ import { I18nProvider } from "./i18n/I18nContext";
 import { useAppSettings } from "./hooks/useAppSettings";
 import { useUiState } from "./hooks/useUiState";
 import { useWorkspace } from "./hooks/useWorkspace";
+import { useUpdates } from "./hooks/useUpdates";
 import { MainPage } from "./pages/MainPage";
 import { HistoryPage } from "./pages/HistoryPage";
 import { SettingsPage } from "./pages/SettingsPage";
@@ -20,6 +21,7 @@ export function AppShell() {
   // Held here, not in MainPage: navigating away unmounts the page, and the
   // source text and streaming result must survive that.
   const workspace = useWorkspace();
+  const updates = useUpdates(state.settings?.updateChannel);
   const [restored, setRestored] = useState<HistoryEntry>();
   const [closePrompt, setClosePrompt] = useState(false);
 
@@ -60,6 +62,7 @@ export function AppShell() {
             {ui.state.page === "imageText" && <ImageTextPage settings={state.settings} update={state.update} ui={ui.state}
               patchUi={ui.patch} workspace={workspace} />}
             {ui.state.page === "settings" && <SettingsPage settings={state.settings} update={state.update}
+              updates={updates}
               section={ui.state.settingsSection} onSection={(settingsSection) => ui.patch({ settingsSection })} />}
           </main>
         </div>

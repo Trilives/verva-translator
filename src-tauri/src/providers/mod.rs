@@ -1,6 +1,7 @@
 mod claude;
 mod endpoint;
 mod models;
+mod ollama;
 mod openai;
 mod probe;
 mod prompt;
@@ -32,7 +33,9 @@ pub async fn stream_translation<F>(
 where
     F: FnMut(String) + Send,
 {
-    endpoint::validate(&profile.base_url)?;
+    if !matches!(profile.kind, ProviderKind::Ollama) {
+        endpoint::validate(&profile.base_url)?;
+    }
     let request = StreamRequest {
         client,
         profile,
@@ -48,6 +51,7 @@ where
     match profile.kind {
         ProviderKind::Openai => openai::stream(request, cancel, on_delta).await,
         ProviderKind::Claude => claude::stream(request, cancel, on_delta).await,
+        ProviderKind::Ollama => ollama::stream(request, cancel, on_delta).await,
     }
 }
 
@@ -58,10 +62,13 @@ pub async fn probe(
     profile: &ProviderProfile,
     api_key: &str,
 ) -> Result<(), String> {
-    endpoint::validate(&profile.base_url)?;
+    if !matches!(profile.kind, ProviderKind::Ollama) {
+        endpoint::validate(&profile.base_url)?;
+    }
     match profile.kind {
         ProviderKind::Openai => openai::probe(client, profile, api_key).await,
         ProviderKind::Claude => claude::probe(client, profile, api_key).await,
+        ProviderKind::Ollama => ollama::probe(client, profile).await,
     }
 }
 
@@ -70,8 +77,12 @@ pub async fn list_models(
     profile: &ProviderProfile,
     api_key: &str,
 ) -> Result<Vec<String>, String> {
-    endpoint::validate(&profile.base_url)?;
-    models::list(client, profile, api_key).await
+    if matches!(profile.kind, ProviderKind::Ollama) {
+        ollama::list(client).await
+    } else {
+        endpoint::validate(&profile.base_url)?;
+        models::list(client, profile, api_key).await
+    }
 }
 
 pub fn is_lan_endpoint(value: &str) -> bool {
@@ -79,8 +90,31 @@ pub fn is_lan_endpoint(value: &str) -> bool {
 }
 
 pub fn is_translategemma(profile: &ProviderProfile) -> bool {
-    profile.base_url.starts_with("http://127.0.0.1:11434/")
+    (matches!(profile.kind, ProviderKind::Ollama)
+        || profile.base_url.starts_with("http://127.0.0.1:11434/"))
         && profile.model.starts_with("translategemma:")
+}
+
+/// Small local models follow a plain-text instruction more reliably than the
+/// language-marker protocol used for remote APIs.
+pub fn build_local_prompt(
+    source: &str,
+    target: &str,
+    style: &str,
+    custom: &str,
+    text: &str,
+) -> String {
+    let from = if source == "Auto Detect" {
+        "".to_owned()
+    } else {
+        format!(" from {source}")
+    };
+    let extra = if custom.trim().is_empty() {
+        String::new()
+    } else {
+        format!(" {}", custom.trim())
+    };
+    format!("Translate the text{from} into {target} in a {style} style.{extra} Return only the translation, with no label, explanation, or JSON.\n\n{text}")
 }
 
 /// Shared verdict for both adapters' probes. A model that refuses the one-token
@@ -256,6 +290,21 @@ mod stream_tests {
         let prompt = build_user_prompt("English", "German", "business", "", "Hello");
         assert!(prompt.contains("Style: business"));
         assert!(prompt.contains("Additional requirements: none"));
+    }
+
+    #[test]
+    fn local_prompt_returns_plain_text_without_the_language_marker_protocol() {
+        let prompt = build_local_prompt(
+            "Auto Detect",
+            "Chinese (Simplified)",
+            "natural",
+            "",
+            "Hello",
+        );
+        assert!(prompt.contains("Return only the translation"));
+        assert!(prompt.contains("Chinese (Simplified)"));
+        assert!(!prompt.contains("[[LANGUAGE:"));
+        assert!(!prompt.contains("Auto Detect"));
     }
 
     #[test]

@@ -5,7 +5,7 @@ import { defaultProfile } from "../domain/catalogs";
 import type { AppSettings, ProviderProfile } from "../domain/types";
 import { useI18n } from "../i18n/I18nContext";
 import { deleteApiKey, saveApiKey } from "../services/backend";
-import { checkForUpdate } from "../services/updater";
+import type { useUpdates } from "../hooks/useUpdates";
 import { ProfileList } from "../components/ProfileList";
 import { GeneralSection, ShortcutsSection, UpdatesSection } from "../components/SettingsSections";
 
@@ -16,12 +16,12 @@ interface Props {
   update: (value: AppSettings | ((s: AppSettings) => AppSettings)) => Promise<void>;
   section: Section;
   onSection: (section: Section) => void;
+  updates: ReturnType<typeof useUpdates>;
 }
 
-export function SettingsPage({ settings, update, section, onSection }: Props) {
+export function SettingsPage({ settings, update, section, onSection, updates }: Props) {
   const { t } = useI18n();
   const [expandedId, setExpandedId] = useState<string>();
-  const [updateStatus, setUpdateStatus] = useState("");
   const [keyDrafts, setKeyDrafts] = useState<Record<string, string>>({});
 
   const changeProfile = (id: string, changes: Partial<ProviderProfile>) =>
@@ -44,6 +44,7 @@ export function SettingsPage({ settings, update, section, onSection }: Props) {
   };
 
   const removeProfile = async (target: ProviderProfile) => {
+    if (target.kind === "ollama") return;
     if (settings.profiles.length === 1) return;
     await deleteApiKey(target.id);
     setExpandedId(undefined);
@@ -52,16 +53,6 @@ export function SettingsPage({ settings, update, section, onSection }: Props) {
       return { ...current, profiles,
         activeProfileId: current.activeProfileId === target.id ? profiles[0].id : current.activeProfileId };
     });
-  };
-
-  const checkUpdate = async () => {
-    setUpdateStatus(t("checking"));
-    try {
-      const result = await checkForUpdate(settings.updateChannel, true);
-      setUpdateStatus(result.available ? `${t("versionAvailable")} ${result.version}` : t("upToDate"));
-    } catch (error) {
-      setUpdateStatus(String(error));
-    }
   };
 
   return <div className="settings-view">
@@ -74,7 +65,7 @@ export function SettingsPage({ settings, update, section, onSection }: Props) {
     <TabList selectedValue={section} onTabSelect={(_, d) => onSection(d.value as Section)} className="settings-tabs">
       <Tab value="profiles">{t("profile")}</Tab>
       <Tab value="general">{t("appearance")}</Tab>
-      <Tab value="updates">{t("updates")}</Tab>
+      <Tab value="updates">{t("updates")}{updates.available?.available ? " •" : ""}</Tab>
       <Tab value="shortcuts">{t("shortcuts")}</Tab>
     </TabList>
     <section className="settings-content">
@@ -88,7 +79,7 @@ export function SettingsPage({ settings, update, section, onSection }: Props) {
           onSaveKey={saveKey} onChange={changeProfile} onDelete={removeProfile} />
       </div>}
       {section === "general" && <GeneralSection settings={settings} update={update} />}
-      {section === "updates" && <UpdatesSection settings={settings} update={update} status={updateStatus} onCheck={checkUpdate} />}
+      {section === "updates" && <UpdatesSection settings={settings} update={update} updates={updates} />}
       {section === "shortcuts" && <ShortcutsSection settings={settings} update={update} />}
     </section>
   </div>;

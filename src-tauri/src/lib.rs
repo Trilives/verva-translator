@@ -72,6 +72,7 @@ pub fn run() {
             commands::secrets::delete_api_key,
             commands::models::list_models,
             commands::local_models::local_model_status,
+            commands::local_models::start_ollama,
             commands::local_models::pull_local_model,
             commands::local_models::cancel_local_model_pull,
             commands::local_models::load_local_model,
@@ -83,6 +84,7 @@ pub fn run() {
             commands::history::clear_history,
             commands::updates::install_mode,
             commands::updates::check_update,
+            commands::updates::install_update,
             commands::diagnostics::test_profile,
             commands::window_state::hide_to_tray,
             commands::window_state::quit_app

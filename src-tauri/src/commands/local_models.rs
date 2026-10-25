@@ -237,6 +237,50 @@ pub async fn local_model_status(state: State<'_, AppState>) -> Result<LocalStatu
 }
 
 #[tauri::command]
+pub async fn start_ollama(state: State<'_, AppState>) -> Result<(), String> {
+    if models(&state.local_client, "/api/tags").await.is_ok() {
+        return Ok(());
+    }
+    let executable = ollama_executable().ok_or("OLLAMA_EXECUTABLE_MISSING")?;
+    #[cfg(windows)]
+    let app = executable.with_file_name("ollama app.exe");
+    #[cfg(windows)]
+    let use_app = app.is_file();
+    let mut command = {
+        #[cfg(windows)]
+        {
+            if use_app {
+                Command::new(app)
+            } else {
+                Command::new(executable)
+            }
+        }
+        #[cfg(not(windows))]
+        {
+            Command::new(executable)
+        }
+    };
+    #[cfg(windows)]
+    if !use_app {
+        command.arg("serve").creation_flags(0x0800_0000);
+    }
+    #[cfg(not(windows))]
+    command.arg("serve");
+    command
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null());
+    command.spawn().map_err(|e| e.to_string())?;
+    for _ in 0..80 {
+        if models(&state.local_client, "/api/tags").await.is_ok() {
+            return Ok(());
+        }
+        tokio::time::sleep(Duration::from_millis(150)).await;
+    }
+    Err("Ollama did not start. Try opening it from the Start menu.".into())
+}
+
+#[tauri::command]
 pub async fn pull_local_model(
     app: AppHandle,
     state: State<'_, AppState>,

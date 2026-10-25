@@ -77,11 +77,12 @@ impl<'de> Deserialize<'de> for ThinkingLevel {
     }
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ProviderKind {
     Openai,
     Claude,
+    Ollama,
 }
 
 #[derive(Clone, Debug, Deserialize)]

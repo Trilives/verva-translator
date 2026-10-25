@@ -12,11 +12,14 @@ export function useAppSettings() {
     // Never leave the window on the splash: a rejected backend call would
     // otherwise render as a permanently blank window with no way to recover.
     const reload = () => loadSettings().then(async (value) => {
-      const profiles = await Promise.all(value.profiles.map(async (profile) => ({ ...profile, hasApiKey: await hasApiKey(profile.id).catch(() => profile.hasApiKey) })));
+      const profiles = await Promise.all(value.profiles.map(async (profile) => ({ ...profile,
+        hasApiKey: profile.kind === "ollama" ? false : await hasApiKey(profile.id).catch(() => profile.hasApiKey) })));
       const hydrated = { ...value, profiles };
       current.current = hydrated;
+      // The fixed Ollama profile may have been added while loading an older
+      // settings file; persist it before a translation command reads the store.
+      await saveSettings(hydrated).catch((error) => console.error("Failed to save settings", error));
       setSettings(hydrated);
-      if (profiles.some((profile, index) => profile.hasApiKey !== value.profiles[index].hasApiKey)) await saveSettings(hydrated);
     }).catch((error) => {
       console.error("Failed to load settings", error);
       setSettings((current) => current ?? defaultSettings());

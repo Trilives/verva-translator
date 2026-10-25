@@ -11,7 +11,7 @@ vi.mock("../services/settingsStore", () => ({
 vi.mock("../services/backend", () => ({ hasApiKey: mocks.hasApiKey }));
 
 const initial: AppSettings = {
-  locale: "en", theme: "system", closeBehavior: "ask", updateMode: "manual", updateChannel: "stable",
+  locale: "en", theme: "system", closeBehavior: "ask", updateChannel: "stable",
   activeProfileId: "profile-1",
   profiles: [{ id: "profile-1", name: "Local", kind: "openai", baseUrl: "http://127.0.0.1:11434/v1",
     model: "local-model", thinking: "off", longConversation: false, contextLimit: 8192, hasApiKey: false }],

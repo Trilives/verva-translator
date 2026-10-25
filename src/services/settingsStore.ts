@@ -1,5 +1,6 @@
 import { load } from "@tauri-apps/plugin-store";
 import { defaultProfile, thinkingLevels } from "../domain/catalogs";
+import { ensureLocalOllama, localOllamaProfile } from "../domain/localOllama";
 import type { AppSettings, ThinkingLevel } from "../domain/types";
 import { isTauri } from "./runtime";
 
@@ -19,19 +20,20 @@ function normalizeThinking(value: unknown): ThinkingLevel {
 }
 
 /** Applies field-level migrations that a shallow default spread cannot. */
-function normalize(settings: AppSettings): AppSettings {
-  return {
-    ...settings,
-    profiles: settings.profiles.map((profile) => ({
+function normalize(settings: AppSettings & { updateMode?: string }): AppSettings {
+  const { updateMode: _retiredUpdateMode, ...current } = settings;
+  return ensureLocalOllama({
+    ...current,
+    profiles: current.profiles.map((profile) => ({
       ...profile, thinking: normalizeThinking(profile.thinking)
     }))
-  };
+  });
 }
 export const defaultSettings = (): AppSettings => {
   const profile = defaultProfile();
   return {
-    locale: "en", theme: "system", closeBehavior: "ask", updateMode: "manual", updateChannel: "stable", ollamaProxyUrl: "",
-    activeProfileId: profile.id, profiles: [profile],
+    locale: "en", theme: "system", closeBehavior: "ask", updateChannel: "stable", ollamaProxyUrl: "",
+    activeProfileId: profile.id, profiles: [profile, localOllamaProfile()],
     shortcuts: { translate: "Ctrl+Enter", clear: "Ctrl+L", copy: "Ctrl+Shift+C" }
   };
 };

@@ -37,6 +37,7 @@ export function ImageTextPage({ settings, update, ui, patchUi, workspace }: Prop
   const [error, setError] = useState("");
   const active = settings.profiles.find((p) => p.id === settings.activeProfileId) ?? settings.profiles[0];
   const needsKey = active && !isLanBaseUrl(active.baseUrl) && !active.hasApiKey;
+  const localModelMissing = active?.kind === "ollama" && !active.model;
   const translation = workspace.translation;
 
   useEffect(() => {
@@ -65,7 +66,7 @@ export function ImageTextPage({ settings, update, ui, patchUi, workspace }: Prop
   };
 
   const translate = () => {
-    if (!recognized.trim() || !active || needsKey || translation.busy) return;
+    if (!recognized.trim() || !active || needsKey || localModelMissing || translation.busy) return;
     workspace.setInput(recognized);
     setHasTranslated(true);
     void translation.start({ profileId: active.id, sourceLanguage: "Auto Detect",
@@ -109,11 +110,12 @@ export function ImageTextPage({ settings, update, ui, patchUi, workspace }: Prop
           <LanguageSelect kind="target" value={ui.target} onChange={(target) => patchUi({ target })} />
           {ui.target === "Custom" && <input className="native-input" value={ui.customTarget} placeholder={t("customLanguage")}
             onChange={(e) => patchUi({ customTarget: e.target.value })} />}
-          <Button appearance="primary" disabled={!recognized.trim() || !!needsKey || translation.busy || ui.target === "Custom" && !ui.customTarget.trim()}
+          <Button appearance="primary" disabled={!recognized.trim() || !!needsKey || !!localModelMissing || translation.busy || ui.target === "Custom" && !ui.customTarget.trim()}
             onClick={translate}>{t("translateExtracted")}</Button>
           {translation.busy && <Button onClick={() => void translation.stop()}>{t("stop")}</Button>}
         </div>
         {needsKey && <p className="empty-note">{t("keyRequired")}</p>}
+        {localModelMissing && <p className="empty-note">{t("noLocalModels")}</p>}
       </section>
     </div>
     {hasTranslated && <section className="image-result"><h2>{t("translatedText")}</h2>

@@ -32,7 +32,16 @@ pub async fn test_profile(
     };
 
     let started = std::time::Instant::now();
-    let outcome = providers::probe(&state.client, &profile, &api_key).await;
+    let outcome = providers::probe(
+        if matches!(profile.kind, crate::models::ProviderKind::Ollama) {
+            &state.local_client
+        } else {
+            &state.client
+        },
+        &profile,
+        &api_key,
+    )
+    .await;
     let latency = started.elapsed().as_millis() as u64;
 
     Ok(match outcome {

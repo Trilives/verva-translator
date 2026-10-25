@@ -1,4 +1,8 @@
-use crate::{models::ProviderProfile, providers, state::AppState};
+use crate::{
+    models::{ProviderKind, ProviderProfile},
+    providers,
+    state::AppState,
+};
 use tauri::State;
 use zeroize::Zeroizing;
 
@@ -34,6 +38,9 @@ pub(super) fn load_provider_key(
     state: &AppState,
     profile: &ProviderProfile,
 ) -> Result<Zeroizing<String>, String> {
+    if matches!(profile.kind, ProviderKind::Ollama) {
+        return Ok(Zeroizing::new(String::new()));
+    }
     match state.secrets.get(&secret_key(&profile.id))? {
         Some(bytes) => Ok(Zeroizing::new(
             String::from_utf8(bytes).map_err(|_| "The stored API key is invalid")?,

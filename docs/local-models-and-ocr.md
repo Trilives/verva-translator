@@ -5,11 +5,15 @@ Research checked on 2026-10-25. The desktop app remains Windows-first.
 ## Local translation
 
 Ollama owns model downloads and inference. Verva calls its loopback API from Rust
-for installed/running state, streamed pulls, loading and unloading. Choosing
-"Use in translation" creates an OpenAI-compatible profile at
-`http://127.0.0.1:11434/v1`, so the existing translation workspace and settings
-use the same profile as remote models. Ollama must be installed; its usual server
-must be running to load and use a model.
+for installed/running state, streamed pulls, loading and unloading. The local
+models page can start an installed Ollama app. Settings has one fixed Ollama
+profile whose only editable field is the installed model selection. Older
+per-model profiles created by Verva migrate into it. "Use in translation" selects
+this profile and model. Local translation calls Ollama's native `/api/chat` with
+`think: false` and a short plain-text prompt, then streams the translation
+without the language marker protocol used for remote APIs. On this computer,
+the old marker prompt produced only a marker or empty content with Gemma 3 1B
+and Qwen3.5 0.8B; the new prompt returned complete Chinese translations from both.
 Public local models do not require Ollama sign-in; sign-in is for cloud models.
 "Stop model" unloads that model from memory; it does not shut down Ollama.
 The Ollama download and benchmark links open in the system browser through a

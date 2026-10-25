@@ -10,7 +10,7 @@ import { LanguageSelect } from "./LanguageSelect";
 
 interface Props {
   source: string; target: string; customTarget: string; detected?: string;
-  input: string; output: string; busy: boolean;
+  input: string; output: string; busy: boolean; blocked?: boolean;
   onSource: (v: string) => void; onTarget: (v: string) => void;
   onCustomTarget: (v: string) => void; onSwap: () => void;
   onInput: (v: string) => void; onOutput: (v: string) => void;
@@ -36,7 +36,7 @@ export function TranslatePanes(props: Props) {
           onClick={props.onClear} disabled={!props.input}>{t("clear")}</Button>
         {/* Translate no longer toggles: Stop lives on the pane it interrupts. */}
         <Button className="press translate-button" appearance="primary" icon={<Send20Regular />}
-          onClick={props.onTranslate} disabled={props.busy || !props.input.trim()}>{t("translate")}</Button>
+          onClick={props.onTranslate} disabled={props.busy || props.blocked || !props.input.trim()}>{t("translate")}</Button>
       </footer>
     </div>
 

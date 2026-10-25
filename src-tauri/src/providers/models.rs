@@ -14,6 +14,7 @@ pub async fn list(
         request = match profile.kind {
             ProviderKind::Openai => request.bearer_auth(key),
             ProviderKind::Claude => request.header("x-api-key", key),
+            ProviderKind::Ollama => request,
         };
     }
     if matches!(profile.kind, ProviderKind::Claude) {
@@ -45,6 +46,7 @@ fn endpoint(base: &str, kind: &ProviderKind) -> String {
         }
         ProviderKind::Claude if base.ends_with("/v1") => format!("{base}/models"),
         ProviderKind::Claude => format!("{base}/v1/models"),
+        ProviderKind::Ollama => "http://127.0.0.1:11434/api/tags".into(),
     }
 }
 

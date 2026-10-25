@@ -10,9 +10,6 @@ import { MainHeader } from "../components/MainHeader";
 import { StylePicker } from "../components/StylePicker";
 import { TranslatePanes } from "../components/TranslatePanes";
 import { CustomStyleDialog } from "../components/CustomStyleDialog";
-import { UpdateDialog } from "../components/UpdateDialog";
-import { checkForUpdate, type UpdateResult } from "../services/updater";
-import { detectInstallMode } from "../services/backend";
 import { isLanBaseUrl } from "../domain/providerUrl";
 import { swapTranslation } from "../domain/swapTranslation";
 
@@ -31,18 +28,11 @@ export function MainPage({ settings, update, ui, patchUi, workspace, restored, o
   const { input, setInput, changeInput, clear: clearInput, translation } = workspace;
   const [editing, setEditing] = useState<CustomStyle>();
   const [addingStyle, setAddingStyle] = useState(false);
-  const [availableUpdate, setAvailableUpdate] = useState<UpdateResult>();
-  const [portable, setPortable] = useState(false);
   const active = settings.profiles.find((p) => p.id === settings.activeProfileId) ?? settings.profiles[0];
   const keyRequired = active && !isLanBaseUrl(active.baseUrl) && !active.hasApiKey;
+  const localModelMissing = active?.kind === "ollama" && !active.model;
   const contextWarning = translation.session && translation.session.usedTokens >= translation.session.limit / 2;
   const { source, target, customTarget, style, customStyles } = ui;
-
-  useEffect(() => {
-    if (settings.updateMode !== "automatic") return;
-    detectInstallMode().then((mode) => setPortable(mode === "portable"));
-    checkForUpdate(settings.updateChannel, false).then((result) => result.available && setAvailableUpdate(result)).catch(() => {});
-  }, [settings.updateChannel, settings.updateMode]);
 
   useEffect(() => {
     if (!restored) return;
@@ -59,14 +49,14 @@ export function MainPage({ settings, update, ui, patchUi, workspace, restored, o
   const translate = useCallback(() => {
     // The button is disabled while streaming, but the shortcut still fires;
     // restarting here would discard the partial result.
-    if (!active || keyRequired || translation.busy) return;
+    if (!active || keyRequired || localModelMissing || translation.busy) return;
     translation.start({
       profileId: active.id, sourceLanguage: source,
       targetLanguage: target === "Custom" ? customTarget : target, sourceText: input,
       ...stylePayload(style, customStyles),
       contextLimit: active.contextLimit, longConversation: active.longConversation
     });
-  }, [active, customStyles, customTarget, input, keyRequired, source, style, target, translation]);
+  }, [active, customStyles, customTarget, input, keyRequired, localModelMissing, source, style, target, translation]);
 
   const copy = useCallback(() => { if (translation.output) navigator.clipboard.writeText(translation.output); }, [translation.output]);
   const shortcutActions = useMemo(() => ({ translate, clear: clearInput, copy }), [translate, clearInput, copy]);
@@ -122,6 +112,7 @@ export function MainPage({ settings, update, ui, patchUi, workspace, restored, o
 
     <div className="message-stack">
       {keyRequired && <MessageBar intent="warning"><MessageBarBody>{t("keyRequired")}</MessageBarBody></MessageBar>}
+      {localModelMissing && <MessageBar intent="warning"><MessageBarBody>{t("noLocalModels")}</MessageBarBody></MessageBar>}
       {contextWarning && <MessageBar intent="warning"><MessageBarBody>{t("contextWarning")}</MessageBarBody></MessageBar>}
       {translation.error && <MessageBar intent="error"><MessageBarBody>{t("translationFailed")}: {translation.error}</MessageBarBody></MessageBar>}
     </div>
@@ -133,7 +124,7 @@ export function MainPage({ settings, update, ui, patchUi, workspace, restored, o
 
     <TranslatePanes
       source={source} target={target} customTarget={customTarget} detected={translation.detectedLanguage}
-      input={input} output={translation.output} busy={translation.busy}
+      input={input} output={translation.output} busy={translation.busy} blocked={!!keyRequired || !!localModelMissing}
       onSource={(v) => { patchUi({ source: v }); translation.setDetectedLanguage(undefined); }}
       onTarget={(v) => patchUi({ target: v })} onCustomTarget={(v) => patchUi({ customTarget: v })} onSwap={swap}
       onInput={changeInput} onOutput={translation.setOutput}
@@ -141,7 +132,5 @@ export function MainPage({ settings, update, ui, patchUi, workspace, restored, o
 
     <CustomStyleDialog value={editing} isNew={addingStyle} onSave={saveStyle} onDelete={deleteStyle}
       onCancel={() => { setEditing(undefined); setAddingStyle(false); }} />
-    {availableUpdate?.version && <UpdateDialog version={availableUpdate.version} body={availableUpdate.body} portable={portable}
-      onCancel={() => setAvailableUpdate(undefined)} onInstall={() => checkForUpdate(settings.updateChannel, !portable)} />}
   </div>;
 }

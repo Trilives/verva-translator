@@ -39,11 +39,7 @@ pub struct UpdateInfo {
 }
 
 #[tauri::command]
-pub async fn check_update(
-    app: AppHandle,
-    channel: String,
-    install: bool,
-) -> Result<UpdateInfo, String> {
+pub async fn check_update(app: AppHandle, channel: String) -> Result<UpdateInfo, String> {
     let channel = if channel == "beta" { "beta" } else { "stable" };
     let endpoint = tauri::Url::parse(&format!(
         "https://github.com/Trilives/verva-translator/releases/download/updater-{channel}/latest.json"
@@ -65,18 +61,52 @@ pub async fn check_update(
     };
     let version = Some(update.version.clone());
     let body = update.body.clone();
-    let installed = install && is_installed();
-    if installed {
-        update
-            .download_and_install(|_, _| {}, || {})
-            .await
-            .map_err(|error| error.to_string())?;
-    }
     Ok(UpdateInfo {
         available: true,
         version,
         body,
-        installed,
+        installed: false,
+    })
+}
+
+#[tauri::command]
+pub async fn install_update(
+    app: AppHandle,
+    channel: String,
+    expected_version: String,
+) -> Result<UpdateInfo, String> {
+    if !is_installed() {
+        return Err("Portable builds cannot install updates".into());
+    }
+    let channel = if channel == "beta" { "beta" } else { "stable" };
+    let endpoint = tauri::Url::parse(&format!(
+        "https://github.com/Trilives/verva-translator/releases/download/updater-{channel}/latest.json"
+    )).map_err(|error| error.to_string())?;
+    let updater = app
+        .updater_builder()
+        .endpoints(vec![endpoint])
+        .map_err(|error| error.to_string())?
+        .build()
+        .map_err(|error| error.to_string())?;
+    let update = updater
+        .check()
+        .await
+        .map_err(|error| error.to_string())?
+        .ok_or("No update is available")?;
+    if update.version != expected_version {
+        return Err("The available update changed. Check for updates again.".into());
+    }
+    let version = Some(update.version.clone());
+    let body = update.body.clone();
+    update
+        .download_and_install(|_, _| {}, || {})
+        .await
+        .map_err(|error| error.to_string())?;
+    Ok(UpdateInfo {
+        available: true,
+        version,
+        body,
+        installed: true,
     })
 }
 
