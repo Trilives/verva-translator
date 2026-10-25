@@ -6,6 +6,7 @@ use std::{
 };
 use tauri::{AppHandle, Manager};
 use tauri_plugin_stronghold::stronghold::Stronghold;
+use tokio::sync::watch;
 
 const CLIENT: &[u8] = b"verva-native";
 
@@ -75,6 +76,7 @@ impl SecretVault {
 pub struct AppState {
     pub secrets: SecretVault,
     pub cancellations: DashMap<String, Arc<AtomicBool>>,
+    pub pull_cancellations: DashMap<String, watch::Sender<bool>>,
     pub sessions: Mutex<HashMap<String, Vec<ConversationTurn>>>,
     pub client: reqwest::Client,
 }
@@ -84,6 +86,7 @@ impl AppState {
         Ok(Self {
             secrets: SecretVault::new(app).map_err(std::io::Error::other)?,
             cancellations: DashMap::new(),
+            pull_cancellations: DashMap::new(),
             sessions: Mutex::new(HashMap::new()),
             client: reqwest::Client::builder()
                 .https_only(false)

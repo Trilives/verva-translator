@@ -73,6 +73,7 @@ pub fn run() {
             commands::models::list_models,
             commands::local_models::local_model_status,
             commands::local_models::pull_local_model,
+            commands::local_models::cancel_local_model_pull,
             commands::local_models::load_local_model,
             commands::local_models::unload_local_model,
             commands::ocr::recognize_image,

@@ -217,7 +217,7 @@ Registered commands:
 - `save_api_key`, `has_api_key`, `delete_api_key`
 - `start_translation`, `cancel_translation`
 - `list_models`
-- `local_model_status`, `pull_local_model`, `load_local_model`, `unload_local_model`
+- `local_model_status`, `pull_local_model`, `cancel_local_model_pull`, `load_local_model`, `unload_local_model`
 - `recognize_image`
 - `test_profile`
 - `list_history`, `clear_history`

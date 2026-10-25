@@ -14,12 +14,13 @@ export const detectInstallMode = () => isTauri() ? invoke<"installed" | "portabl
 export const hideToTray = () => invoke<void>("hide_to_tray");
 export const quitApp = () => invoke<void>("quit_app");
 
-export interface LocalModel { name: string; size: number; running: boolean }
-export interface LocalStatus { available: boolean; models: LocalModel[] }
+export interface LocalModel { name: string; size: number; running: boolean; quantization?: string }
+export interface LocalStatus { available: boolean; models: LocalModel[]; activePulls: string[] }
 export interface PullProgress { model: string; status: string; completed: number; total: number; done: boolean }
 export const localModelStatus = () => isTauri() ? invoke<LocalStatus>("local_model_status")
-  : Promise.resolve<LocalStatus>({ available: false, models: [] });
+  : Promise.resolve<LocalStatus>({ available: false, models: [], activePulls: [] });
 export const pullLocalModel = (model: string) => invoke<void>("pull_local_model", { model });
+export const cancelLocalModelPull = (model: string) => invoke<void>("cancel_local_model_pull", { model });
 export const loadLocalModel = (model: string) => invoke<void>("load_local_model", { model });
 export const unloadLocalModel = (model: string) => invoke<void>("unload_local_model", { model });
 export const recognizeImage = (imageBase64: string) =>

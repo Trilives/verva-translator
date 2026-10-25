@@ -1,6 +1,6 @@
 # Local translation and image text decisions
 
-Research checked on 2026-10-24. The desktop app remains Windows-first.
+Research checked on 2026-10-25. The desktop app remains Windows-first.
 
 ## Local translation
 
@@ -9,6 +9,7 @@ for installed/running state, streamed pulls, loading and unloading. Choosing
 "Use in translation" creates an OpenAI-compatible profile at
 `http://127.0.0.1:11434/v1`, so the existing translation workspace and settings
 use the same profile as remote models. Ollama must be installed and running.
+Public local models do not require Ollama sign-in; sign-in is for cloud models.
 "Stop model" unloads that model from memory; it does not shut down Ollama.
 The Ollama download and benchmark links open in the system browser through a
 limited Tauri Opener permission.
@@ -16,33 +17,63 @@ limited Tauri Opener permission.
 The catalog has five size tiers, ordered by practical recommendation rather
 than parameter count:
 
-1. **4B starting tier:** TranslateGemma 4B for translation; Qwen3.5 4B for a
+1. **4B starting tier:** `translategemma:4b-it-q4_K_M` (3.3 GB) for translation;
+   `qwen3.5:4b-q4_K_M` (3.3 GB) for a
    general multilingual alternative. TranslateGemma has direct evidence of
    improvement over its own Gemma 3 4B base, but no directly comparable test
    against Qwen3.5 4B was found, so their relative ranking is provisional.
-2. **2B lighter tier:** Qwen3.5 2B. Its published WMT24++ result is much
+2. **2B lighter tier:** `qwen3.5:2b-q4_K_M` (1.9 GB). Its published WMT24++ result is much
    stronger than the 0.8B sibling under the same Qwen evaluation.
-3. **About 1B lowest-memory tier:** Qwen3.5 0.8B and Gemma 3 1B for short,
+3. **About 1B lowest-memory tier:** `qwen3.5:0.8b-q8_0` (1.0 GB) and
+   `gemma3:1b-it-q4_K_M` (806 MB) for short,
    simple text. No same-setting Chinese↔English comparison of these two was
    found, and their translations need careful review.
-4. **9–12B capable-device tier:** TranslateGemma 12B for translation and
-   Qwen3.5 9B as the general alternative. Select these only with enough
+4. **9–12B capable-device tier:** `translategemma:12b-it-q4_K_M` (8.1 GB) for
+   translation and `qwen3.5:9b-q4_K_M` (6.6 GB) as the general alternative. Select these only with enough
    RAM or VRAM.
-5. **27B high-memory tier:** TranslateGemma 27B, only when the device can
+5. **27B high-memory tier:** `translategemma:27b-it-q4_K_M` (17 GB), only when the device can
    support it. Its benchmark gain over 12B is smaller than its extra memory
    cost for most users.
 
+The catalog uses explicit quantized tags so the downloaded format is clear.
+Qwen3.5 0.8B has an official Q8_0 tag but no Q4_K_M tag in the checked registry.
+The former TranslateGemma and Gemma 3 default tags already point to the same
+Q4_K_M manifests; existing installs under those names remain usable. Published
+benchmarks below evaluate model families, not these exact quantized files.
+For installed models, Verva displays Ollama's reported `quantization_level`.
 Download sizes are estimates from the Ollama registry;
 runtime memory exceeds the model file size and depends on context and backend.
 
 - [Ollama Windows runtime](https://docs.ollama.com/windows)
+- [Ollama quickstart: local models without a key](https://docs.ollama.com/quickstart)
 - [Ollama model lifecycle API](https://docs.ollama.com/api/generate)
 - [Qwen3.5 model sizes](https://ollama.com/library/qwen3.5/tags)
 - [Qwen3.5 0.8B model card and translation benchmark](https://huggingface.co/Qwen/Qwen3.5-0.8B)
 - [Qwen3.5 0.8B on ModelScope](https://modelscope.cn/models/Qwen/Qwen3.5-0.8B)
-- [Gemma 3 1B model size](https://ollama.com/library/gemma3)
+- [Gemma 3 quantized tags](https://ollama.com/library/gemma3/tags)
 - [Gemma 3 1B model card](https://huggingface.co/google/gemma-3-1b-it)
-- [TranslateGemma model sizes and prompt format](https://ollama.com/library/translategemma)
+- [TranslateGemma quantized tags](https://ollama.com/library/translategemma/tags)
+
+### Ollama downloads and cancellation
+
+**Cancel download** closes Verva's current streaming pull request. Ollama may
+retain partial data for a later retry, and its server may not immediately stop
+all background work after the client disconnects. Verva does not delete the
+model or partial cache on cancellation.
+
+If Ollama reports `redirect target not allowed` and an address in
+`198.18.0.0/15`, the model file host was resolved to a proxy fake IP. On this
+machine, the affected host is under `r2.cloudflarestorage.com`. Configure the
+proxy DNS fake-IP filter so `*.r2.cloudflarestorage.com` resolves to a real
+public IP, refresh its DNS cache or restart the proxy and Ollama, then retry.
+Mihomo's default blacklist-style `fake-ip-filter` skips fake IP allocation for
+matching domains; other filter modes use different rules. Verva displays a
+short diagnosis instead of Ollama's signed download URL. It does not bypass
+Ollama's redirect protection.
+
+- [Ollama pull API](https://docs.ollama.com/api/pull)
+- [Ollama report of this fake-IP redirect error](https://github.com/ollama/ollama/issues/19086)
+- [Mihomo DNS fake-IP filter options](https://wiki.metacubex.one/en/config/dns/)
 
 The 1B review also checked dedicated translation models. Meta's NLLB 600M
 supports Chinese and English but its CC-BY-NC license and research-only model
@@ -75,8 +106,7 @@ No directly comparable, independent Chinese↔English translation benchmark was
 found for the two catalog 1B options (Qwen3.5 0.8B and Gemma 3 1B instruction)
 under the same prompt and quantization. Their order is provisional. The app
 does not claim that Qwen3.5 0.8B beats Gemma 3 1B. A local head-to-head test
-requires downloading both models; Ollama was unavailable on this development
-machine at review time.
+requires downloading both models; it was not run for this review.
 
 - [Qwen3.5 0.8B and 2B benchmark](https://huggingface.co/Qwen/Qwen3.5-0.8B)
 - [Qwen3.5 4B and 9B benchmark](https://huggingface.co/Qwen/Qwen3.5-4B)

@@ -4,29 +4,29 @@ import type { AppSettings } from "../domain/types";
 import { useI18n } from "../i18n/I18nContext";
 import { ExternalLink } from "../components/ExternalLink";
 import {
-  loadLocalModel, localModelStatus, onLocalModelPull, pullLocalModel, unloadLocalModel,
+  cancelLocalModelPull, loadLocalModel, localModelStatus, onLocalModelPull, pullLocalModel, unloadLocalModel,
   type LocalStatus, type PullProgress
 } from "../services/backend";
 
 // Ordered by practical recommendation for a translation app, not parameter count.
 const modelTiers = [
   { title: "tier4Title", evidence: "tier4Evidence", source: "https://arxiv.org/pdf/2601.09012", models: [
-    { name: "translategemma:4b", size: "3.3 GB", badge: "recommendedTranslation", description: "translationModelDescription", hardware: "standardHardware" },
-    { name: "qwen3.5:4b", size: "3.3–4 GB", badge: "recommendedAll", description: "visionModelDescription", hardware: "standardHardware" }
+    { name: "translategemma:4b-it-q4_K_M", aliases: ["translategemma:4b"], size: "3.3 GB", badge: "recommendedTranslation", description: "translationModelDescription", hardware: "standardHardware" },
+    { name: "qwen3.5:4b-q4_K_M", aliases: [], size: "3.3 GB", badge: "recommendedAll", description: "visionModelDescription", hardware: "standardHardware" }
   ] },
   { title: "tier2Title", evidence: "tier2Evidence", source: "https://huggingface.co/Qwen/Qwen3.5-0.8B", models: [
-    { name: "qwen3.5:2b", size: "2.7–3.1 GB", badge: "tierPick", description: "lightweightDescription", hardware: "lightHardware" }
+    { name: "qwen3.5:2b-q4_K_M", aliases: [], size: "1.9 GB", badge: "tierPick", description: "lightweightDescription", hardware: "lightHardware" }
   ] },
   { title: "tier1Title", evidence: "tier1Evidence", source: "https://huggingface.co/Qwen/Qwen3.5-0.8B", models: [
-    { name: "qwen3.5:0.8b", size: "1.2–1.3 GB", badge: "tierPick", description: "subOneBDescription", hardware: "lightHardware" },
-    { name: "gemma3:1b", size: "806 MB", badge: "oneBModel", description: "oneBDescription", hardware: "lightHardware" }
+    { name: "qwen3.5:0.8b-q8_0", aliases: [], size: "1.0 GB", badge: "tierPick", description: "subOneBDescription", hardware: "lightHardware" },
+    { name: "gemma3:1b-it-q4_K_M", aliases: ["gemma3:1b"], size: "806 MB", badge: "oneBModel", description: "oneBDescription", hardware: "lightHardware" }
   ] },
   { title: "tierMediumTitle", evidence: "tierMediumEvidence", source: "https://arxiv.org/pdf/2601.09012", models: [
-    { name: "translategemma:12b", size: "8.1 GB", badge: "tierPick", description: "translationModelDescription", hardware: "largeHardware" },
-    { name: "qwen3.5:9b", size: "6.6–7.6 GB", badge: "recommendedAll", description: "visionModelDescription", hardware: "largeHardware" }
+    { name: "translategemma:12b-it-q4_K_M", aliases: ["translategemma:12b"], size: "8.1 GB", badge: "tierPick", description: "translationModelDescription", hardware: "largeHardware" },
+    { name: "qwen3.5:9b-q4_K_M", aliases: [], size: "6.6 GB", badge: "recommendedAll", description: "visionModelDescription", hardware: "largeHardware" }
   ] },
   { title: "tier27Title", evidence: "tier27Evidence", source: "https://arxiv.org/pdf/2601.09012", models: [
-    { name: "translategemma:27b", size: "17 GB", badge: "tierPick", description: "translationModelDescription", hardware: "veryLargeHardware" }
+    { name: "translategemma:27b-it-q4_K_M", aliases: ["translategemma:27b"], size: "17 GB", badge: "tierPick", description: "translationModelDescription", hardware: "veryLargeHardware" }
   ] }
 ] as const;
 
@@ -44,10 +44,13 @@ interface Props {
 
 export function LocalModelsPage({ settings, update, onUse }: Props) {
   const { t } = useI18n();
-  const [status, setStatus] = useState<LocalStatus>({ available: false, models: [] });
+  const [status, setStatus] = useState<LocalStatus>({ available: false, models: [], activePulls: [] });
   const [pending, setPending] = useState<string>();
+  const [pendingAction, setPendingAction] = useState<"download" | "load" | "unload">();
+  const [canceling, setCanceling] = useState(false);
   const [progress, setProgress] = useState<PullProgress>();
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
 
   const refresh = useCallback(async () => {
     try { setStatus(await localModelStatus()); }
@@ -63,14 +66,29 @@ export function LocalModelsPage({ settings, update, onUse }: Props) {
   }, [refresh]);
 
   const act = async (model: string, action: "download" | "load" | "unload") => {
-    setPending(model); setError(""); setProgress(undefined);
+    setPending(model); setPendingAction(action); setCanceling(false); setError(""); setNotice(""); setProgress(undefined);
     try {
       if (action === "download") await pullLocalModel(model);
       if (action === "load") await loadLocalModel(model);
       if (action === "unload") await unloadLocalModel(model);
       await refresh();
-    } catch (reason) { setError(String(reason)); }
-    finally { setPending(undefined); }
+    } catch (reason) {
+      const message = String(reason);
+      if (message.includes("LOCAL_PULL_CANCELLED")) setNotice(t("downloadCanceled"));
+      else if (message.includes("OLLAMA_REDIRECT_FAKE_IP")) setError(t("ollamaFakeIpError"));
+      else setError(message);
+    }
+    finally { setPending(undefined); setPendingAction(undefined); setCanceling(false); }
+  };
+
+  const cancelDownload = async (model: string) => {
+    setCanceling(true);
+    try {
+      await cancelLocalModelPull(model);
+      if (pending !== model) setNotice(t("downloadCanceled"));
+      await refresh();
+    }
+    catch (reason) { setError(String(reason)); setCanceling(false); }
   };
 
   const useForTranslation = async (model: string) => {
@@ -87,10 +105,12 @@ export function LocalModelsPage({ settings, update, onUse }: Props) {
     onUse();
   };
 
-  const otherInstalled = status.models.filter((model) => !recommended.some((item) => item.name === model.name));
+  const otherInstalled = status.models.filter((model) => !recommended.some((item) =>
+    item.name === model.name || item.aliases.some((alias) => alias === model.name)));
   const renderCard = (name: string, recommendation?: Recommendation) => {
-    const installed = status.models.find((model) => model.name === name);
-    const busy = pending === name;
+    const installed = status.models.find((model) => model.name === name || recommendation?.aliases.some((alias) => alias === model.name));
+    const activePull = status.activePulls.includes(name);
+    const busy = pending === name || pending === installed?.name || activePull;
     return <article className="local-card" key={name}>
       <div className="local-card-main">
         <div className="local-card-title"><strong>{name}</strong>
@@ -98,19 +118,20 @@ export function LocalModelsPage({ settings, update, onUse }: Props) {
           <span className="local-status">{installed?.running ? t("modelRunning") : installed ? t("modelInstalled") : t("modelNotInstalled")}</span>
         </div>
         <p>{recommendation ? t(recommendation.description) : t("otherInstalledModel")}</p>
-        <small>{t("downloadSize")}: {installed ? `${(installed.size / 1e9).toFixed(1)} GB` : recommendation?.size ?? "—"} · {recommendation ? t(recommendation.hardware) : ""}</small>
+        <small>{t("downloadSize")}: {installed ? `${(installed.size / 1e9).toFixed(1)} GB` : recommendation?.size ?? "—"}{installed?.quantization ? ` · ${installed.quantization}` : ""} · {recommendation ? t(recommendation.hardware) : ""}</small>
       </div>
       <div className="local-actions">
-        {!installed && <Button disabled={!status.available || !!pending} onClick={() => void act(name, "download")}>{t("downloadModel")}</Button>}
+        {!installed && <Button disabled={!status.available || !!pending || activePull} onClick={() => void act(name, "download")}>{t("downloadModel")}</Button>}
         {installed && <>
-          <Button disabled={!!pending} onClick={() => void act(name, installed.running ? "unload" : "load")}>{installed.running ? t("unloadModel") : t("loadModel")}</Button>
-          <Button appearance="primary" disabled={!!pending} onClick={() => void useForTranslation(name)}>{t("useForTranslation")}</Button>
+          <Button disabled={!!pending} onClick={() => void act(installed.name, installed.running ? "unload" : "load")}>{installed.running ? t("unloadModel") : t("loadModel")}</Button>
+          <Button appearance="primary" disabled={!!pending} onClick={() => void useForTranslation(installed.name)}>{t("useForTranslation")}</Button>
         </>}
       </div>
       {busy && <div className="local-progress">
         {progress?.model === name && progress.total > 0
           ? <ProgressBar value={progress.completed / progress.total} /> : <Spinner size="tiny" />}
         <span>{progress?.model === name ? `${progress.status} ${progress.total ? `${Math.round(progress.completed / progress.total * 100)}%` : ""}` : t("working")}</span>
+        {(pendingAction === "download" || activePull) && <Button size="small" disabled={canceling} onClick={() => void cancelDownload(name)}>{canceling ? t("cancelingDownload") : t("cancelDownload")}</Button>}
       </div>}
     </article>;
   };
@@ -122,7 +143,9 @@ export function LocalModelsPage({ settings, update, onUse }: Props) {
       <ExternalLink href="https://ollama.com/download/windows" onError={setError}>{t("installOllama")}</ExternalLink>
     </div>}
     {error && <MessageBar intent="error"><MessageBarBody>{error}</MessageBarBody></MessageBar>}
+    {notice && <MessageBar intent="info"><MessageBarBody>{notice}</MessageBarBody></MessageBar>}
     <p className="local-note">{t("localPrivacy")} {t("largeModelAdvice")}</p>
+    <p className="local-note">{t("quantizedModelNote")}</p>
     <p className="local-note">{t("benchmarkNote")}</p>
     <div className="local-list">
       {modelTiers.map((tier) => <section className="local-tier" key={tier.title}>

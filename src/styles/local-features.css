@@ -25,6 +25,7 @@
 .local-card small { color: var(--colorNeutralForeground3); }
 .local-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .local-progress { grid-column: 1 / -1; display: grid; gap: 5px; font-size: 12px; color: var(--colorNeutralForeground3); }
+.local-progress button { justify-self: start; }
 .image-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; }
 .file-pick, .image-model-label { display: grid; gap: 5px; font-size: 12px; color: var(--colorNeutralForeground2); }
 .file-pick input, .image-model-label select { max-width: min(290px, 100%); min-height: 32px; color: var(--colorNeutralForeground1); }
