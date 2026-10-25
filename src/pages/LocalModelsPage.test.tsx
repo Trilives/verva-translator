@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { AppSettings } from "../domain/types";
 import { I18nProvider } from "../i18n/I18nContext";
@@ -73,4 +73,22 @@ it("uses the optional proxy for a model download", async () => {
   await waitFor(() => expect(screen.getAllByRole("button", { name: "Download" })[0].hasAttribute("disabled")).toBe(false));
   fireEvent.click(screen.getAllByRole("button", { name: "Download" })[0]);
   await waitFor(() => expect(mocks.pull).toHaveBeenCalledWith("translategemma:4b-it-q4_K_M", "127.0.0.1:7897"));
+});
+
+it("downloads a custom Ollama model name", async () => {
+  render(<I18nProvider locale="en"><LocalModelsPage settings={settings} update={vi.fn()} onUse={vi.fn()} /></I18nProvider>);
+  fireEvent.change(screen.getByRole("textbox", { name: "Ollama model name" }), { target: { value: "mistral:7b-instruct-q4_K_M" } });
+  const card = screen.getByText("mistral:7b-instruct-q4_K_M").closest("article");
+  expect(card).not.toBeNull();
+  await waitFor(() => expect(within(card!).getByRole("button", { name: "Download" }).hasAttribute("disabled")).toBe(false));
+  fireEvent.click(within(card!).getByRole("button", { name: "Download" }));
+  await waitFor(() => expect(mocks.pull).toHaveBeenCalledWith("mistral:7b-instruct-q4_K_M", undefined));
+});
+
+it("shows a custom pull after reopening the page", async () => {
+  mocks.status.mockResolvedValue({ available: true, ollamaInstalled: true, models: [], activePulls: ["mistral:7b-instruct-q4_K_M"] });
+  render(<I18nProvider locale="en"><LocalModelsPage settings={settings} update={vi.fn()} onUse={vi.fn()} /></I18nProvider>);
+  const card = (await screen.findByText("mistral:7b-instruct-q4_K_M")).closest("article");
+  expect(card).not.toBeNull();
+  expect(within(card!).getByRole("button", { name: "Cancel download" })).not.toBeNull();
 });

@@ -76,6 +76,11 @@ at 4K context; the 2 GB guidance leaves room for the runtime and other uses.
 
 ### Ollama downloads and cancellation
 
+The **Custom Ollama model** field accepts a model name and tag, such as
+`mistral:7b-instruct-q4_K_M`. It uses the same download, cancel, run, and
+translation controls as recommended models. Custom models have no estimated
+memory figures because those depend on the chosen tag and quantization.
+
 **Cancel download** closes Verva's current streaming pull request. Ollama may
 retain partial data for a later retry, and its server may not immediately stop
 all background work after the client disconnects. Verva does not delete the

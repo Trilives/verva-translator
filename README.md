@@ -22,7 +22,7 @@ Settings: configurations are a list; selecting one opens the full editor with a 
 
 - OpenAI-compatible and Claude-compatible streaming APIs. Translation uses the endpoint and model you choose.
 - Multiple named configurations with fast switching, encrypted API keys, an adjustable thinking level, and optional long conversations.
-- A Local Models page downloads explicit quantized translation models through Ollama, shows progress and approximate VRAM/RAM needs, supports an optional HTTP proxy entered as IP:port and download cancellation, and runs an installed model as a translation configuration. Qwen3.5 4B is the general recommendation and TranslateGemma 4B is the translation-focused recommendation.
+- A Local Models page downloads explicit quantized translation models or a custom Ollama model name, shows progress and approximate VRAM/RAM needs for recommendations, supports an optional HTTP proxy entered as IP:port and download cancellation, and runs an installed model as a translation configuration. Qwen3.5 4B is the general recommendation and TranslateGemma 4B is the translation-focused recommendation.
 - An Image to Text page uses PP-OCRv6 Small on the local CPU for Chinese and English. The first use downloads compact OCR model files. Long images fill the preview width, scroll independently, and can be zoomed. Extracted text is editable; translation is optional.
 - Normal, Natural, Conversation, Business, Command, Professional, and user-authored styles.
 - The source language starts at Auto Detect on each app launch and keeps your selection while you move between pages. Swap exchanges both languages and the source/result text for reverse translation.

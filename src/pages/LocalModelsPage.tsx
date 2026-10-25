@@ -50,6 +50,7 @@ export function LocalModelsPage({ settings, update, onUse }: Props) {
   const [pendingAction, setPendingAction] = useState<"download" | "load" | "unload">();
   const [canceling, setCanceling] = useState(false);
   const [progress, setProgress] = useState<PullProgress>();
+  const [customModelInput, setCustomModelInput] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -109,8 +110,15 @@ export function LocalModelsPage({ settings, update, onUse }: Props) {
     onUse();
   };
 
-  const otherInstalled = status.models.filter((model) => !recommended.some((item) =>
+  const customModel = customModelInput.trim();
+  const validCustomModel = /^[A-Za-z0-9._:/-]{1,120}$/.test(customModel);
+  const customModelListed = recommended.some((item) => item.name === customModel || item.aliases.some((alias) => alias === customModel));
+  const showCustomCard = validCustomModel && !customModelListed;
+  const otherInstalled = status.models.filter((model) => model.name !== (showCustomCard ? customModel : "") && !recommended.some((item) =>
     item.name === model.name || item.aliases.some((alias) => alias === model.name)));
+  const otherActivePulls = status.activePulls.filter((name) => name !== (showCustomCard ? customModel : "")
+    && !status.models.some((model) => model.name === name)
+    && !recommended.some((item) => item.name === name || item.aliases.some((alias) => alias === name)));
   const renderCard = (name: string, recommendation?: Recommendation) => {
     const installed = status.models.find((model) => model.name === name || recommendation?.aliases.some((alias) => alias === model.name));
     const activePull = status.activePulls.includes(name);
@@ -121,7 +129,7 @@ export function LocalModelsPage({ settings, update, onUse }: Props) {
           {recommendation && <span className="local-badge">{t(recommendation.badge)}</span>}
           <span className="local-status">{!status.available ? t("modelStatusUnavailable") : installed?.running ? t("modelRunning") : installed ? t("modelInstalled") : t("modelNotInstalled")}</span>
         </div>
-        <p>{recommendation ? t(recommendation.description) : t("otherInstalledModel")}</p>
+        <p>{recommendation ? t(recommendation.description) : installed ? t("otherInstalledModel") : t("customModelDescription")}</p>
         <small>{t("downloadSize")}: {installed ? `${(installed.size / 1e9).toFixed(1)} GB` : recommendation?.size ?? "—"}{installed?.quantization ? ` · ${installed.quantization}` : ""} · {recommendation ? t(recommendation.hardware) : ""}</small>
         {recommendation && <small className="local-memory">{t("estimatedVram")}: {recommendation.vram} · {t("estimatedRam")}: {recommendation.ram}</small>}
       </div>
@@ -161,15 +169,24 @@ export function LocalModelsPage({ settings, update, onUse }: Props) {
     <p className="local-note">{t("memoryEstimateNote")}</p>
     <p className="local-note">{t("benchmarkNote")}</p>
     <div className="local-list">
+      <section className="local-tier">
+        <div className="local-tier-header"><h2>{t("customModelTitle")}</h2><p>{t("customModelHint")}</p></div>
+        <Input className="local-model-name" aria-label={t("customModelName")} value={customModelInput}
+          placeholder="namespace/model:tag" maxLength={120} disabled={!!pending} onChange={(_, data) => setCustomModelInput(data.value)} />
+        {customModel && !validCustomModel && <small className="local-note">{t("customModelInvalid")}</small>}
+        {customModelListed && <small className="local-note">{t("customModelListed")}</small>}
+        {showCustomCard && renderCard(customModel)}
+      </section>
       {modelTiers.map((tier) => <section className="local-tier" key={tier.title}>
         <div className="local-tier-header"><h2>{t(tier.title)}</h2>
           <p>{t(tier.evidence)} <ExternalLink href={tier.source} onError={setError}>{t("benchmarkSource")}</ExternalLink></p>
         </div>
         {tier.models.map((model) => renderCard(model.name, model))}
       </section>)}
-      {otherInstalled.length > 0 && <section className="local-tier">
+      {(otherInstalled.length > 0 || otherActivePulls.length > 0) && <section className="local-tier">
         <div className="local-tier-header"><h2>{t("otherInstalledTitle")}</h2></div>
         {otherInstalled.map((model) => renderCard(model.name))}
+        {otherActivePulls.map((name) => renderCard(name))}
       </section>}
     </div>
   </div>;
