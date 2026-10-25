@@ -161,6 +161,15 @@ fn pull_error(message: &str) -> String {
     message.chars().take(300).collect()
 }
 
+fn pull_http_error(status: reqwest::StatusCode, body: &str) -> String {
+    if let Ok(value) = serde_json::from_str::<Value>(body) {
+        if let Some(message) = value.get("error").and_then(Value::as_str) {
+            return pull_error(message);
+        }
+    }
+    format!("Ollama returned {status}")
+}
+
 async fn pull_model_stream(
     app: &AppHandle,
     client: &reqwest::Client,
@@ -181,7 +190,13 @@ async fn pull_model_stream(
         })?,
     };
     if !response.status().is_success() {
-        return Err(format!("Ollama returned {}", response.status()));
+        let status = response.status();
+        let body = tokio::select! {
+            biased;
+            _ = cancel_rx.changed() => return Err(PULL_CANCELLED.into()),
+            body = response.text() => body.unwrap_or_default(),
+        };
+        return Err(pull_http_error(status, &body));
     }
     let mut bytes = response.bytes_stream();
     let mut pending = Vec::new();
@@ -257,7 +272,7 @@ pub async fn unload_local_model(state: State<'_, AppState>, model: String) -> Re
 
 #[cfg(test)]
 mod tests {
-    use super::{pull_error, validate_model, PULL_FAKE_IP};
+    use super::{pull_error, pull_http_error, validate_model, PULL_FAKE_IP};
     #[test]
     fn rejects_names_that_could_escape_the_model_catalog() {
         assert!(validate_model("qwen3.5:4b").is_ok());
@@ -270,6 +285,13 @@ mod tests {
     fn pull_errors_hide_signed_urls_and_identify_fake_ip_dns() {
         let signed = "max retries exceeded: Get \"https://example.r2.cloudflarestorage.com/data?X-Amz-Signature=secret\": redirect target not allowed: example.r2.cloudflarestorage.com resolves to non-public 198.18.0.18";
         assert_eq!(pull_error(signed), PULL_FAKE_IP);
+        assert_eq!(
+            pull_http_error(
+                reqwest::StatusCode::INTERNAL_SERVER_ERROR,
+                &serde_json::json!({ "error": signed }).to_string()
+            ),
+            PULL_FAKE_IP
+        );
         let other = pull_error("download failed: https://example.com/data?X-Amz-Signature=secret");
         assert!(!other.contains("secret"));
         assert!(!other.contains("https://"));
